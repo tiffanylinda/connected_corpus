@@ -1,0 +1,2667 @@
+<html lang="en"><head><title>Plato&#x27;s Republic Book IV, translated by Paul Shorey</title><meta charSet="utf-8"/><style type="text/css">/* Imports the equivalent of components/Editor/styles/base.scss,
+but without the media query mixin, which breaks PagedJS-cli:
+https://gitlab.pagedmedia.org/tools/pagedjs-cli/issues/11 */
+@import url("https://use.typekit.net/kmi0tdo.css");
+.ProseMirror {
+  position: relative;
+}
+
+.ProseMirror {
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  white-space: break-spaces;
+  -webkit-font-variant-ligatures: none;
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0; /* the above doesn't seem to work in Edge */
+}
+
+.ProseMirror pre {
+  white-space: pre-wrap;
+}
+
+.ProseMirror li {
+  position: relative;
+}
+
+.ProseMirror-hideselection *::selection {
+  background: transparent;
+}
+
+.ProseMirror-hideselection *::-moz-selection {
+  background: transparent;
+}
+
+.ProseMirror-hideselection {
+  caret-color: transparent;
+}
+
+.ProseMirror-selectednode {
+  outline: 2px solid #8cf;
+}
+
+/* Make sure li selections wrap around markers */
+li.ProseMirror-selectednode {
+  outline: none;
+}
+
+li.ProseMirror-selectednode:after {
+  content: "";
+  position: absolute;
+  left: -32px;
+  right: -2px;
+  top: -2px;
+  bottom: -2px;
+  border: 2px solid #8cf;
+  pointer-events: none;
+}
+
+/* Protect against generic img rules */
+img.ProseMirror-separator {
+  display: inline !important;
+  border: none !important;
+  margin: 0 !important;
+}
+
+.ProseMirror-gapcursor {
+  display: none;
+  pointer-events: none;
+  position: absolute;
+}
+
+.ProseMirror-gapcursor:after {
+  content: "";
+  display: block;
+  position: absolute;
+  top: -2px;
+  width: 20px;
+  border-top: 1px solid black;
+  animation: ProseMirror-cursor-blink 1.1s steps(2, start) infinite;
+}
+
+@keyframes ProseMirror-cursor-blink {
+  to {
+    visibility: hidden;
+  }
+}
+.ProseMirror-focused .ProseMirror-gapcursor {
+  display: block;
+}
+
+.ProseMirror .tableWrapper {
+  overflow-x: auto;
+}
+
+.ProseMirror table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  overflow: hidden;
+}
+
+.ProseMirror td,
+.ProseMirror th {
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.ProseMirror .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  z-index: 20;
+  background-color: #adf;
+  pointer-events: none;
+}
+
+.ProseMirror.resize-cursor {
+  cursor: ew-resize;
+  cursor: col-resize;
+}
+
+/* Give selected cells a blue overlay */
+.ProseMirror .selectedCell:after {
+  z-index: 2;
+  position: absolute;
+  content: "";
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(200, 200, 255, 0.4);
+  pointer-events: none;
+}
+
+/*---------------------------------------------------------
+ *  Author: Benjamin R. Bray
+ *  License: MIT (see LICENSE in project root for details)
+ *--------------------------------------------------------*/
+/* == Math Nodes ======================================== */
+.math-node {
+  min-width: 1em;
+  min-height: 1em;
+  font-size: 0.95em;
+  font-family: "Consolas", "Ubuntu Mono", monospace;
+  cursor: auto;
+}
+
+.math-node.empty-math .math-render::before {
+  content: "(empty)";
+  color: red;
+}
+
+.math-node .math-render.parse-error::before {
+  content: "(math error)";
+  color: red;
+  cursor: help;
+}
+
+.math-node.ProseMirror-selectednode {
+  outline: none;
+}
+
+.math-node .math-src {
+  display: none;
+  color: rgb(132, 33, 162);
+  tab-size: 4;
+}
+
+.math-node.ProseMirror-selectednode .math-src {
+  display: inline;
+}
+
+.math-node.ProseMirror-selectednode .math-render {
+  display: none;
+}
+
+/* -- Inline Math --------------------------------------- */
+math-inline {
+  display: inline;
+  white-space: nowrap;
+}
+
+math-inline .math-render {
+  display: inline-block;
+  font-size: 0.85em;
+  cursor: pointer;
+}
+
+math-inline .math-src .ProseMirror {
+  display: inline;
+  /* Necessary to fix FireFox bug with contenteditable, https://bugzilla.mozilla.org/show_bug.cgi?id=1252108 */
+  border-right: 1px solid transparent;
+  border-left: 1px solid transparent;
+}
+
+math-inline .math-src::after, math-inline .math-src::before {
+  content: "$";
+  color: #b0b0b0;
+}
+
+/* -- Block Math ---------------------------------------- */
+math-display {
+  display: block;
+}
+
+math-display .math-render {
+  display: block;
+}
+
+math-display.ProseMirror-selectednode {
+  background-color: #eee;
+}
+
+math-display .math-src .ProseMirror {
+  width: 100%;
+  display: block;
+}
+
+math-display .math-src::after, math-display .math-src::before {
+  content: "$$";
+  text-align: left;
+  color: #b0b0b0;
+}
+
+math-display .katex-display {
+  margin: 0;
+}
+
+/* -- Selection Plugin ---------------------------------- */
+p::selection, p > *::selection {
+  background-color: #c0c0c0;
+}
+
+.katex-html *::selection {
+  background-color: none !important;
+}
+
+.math-node.math-select .math-render {
+  background-color: silver;
+}
+
+math-inline.math-select .math-render {
+  padding-top: 2px;
+}
+
+@font-face {
+  font-family: KaTeX_AMS;
+  font-style: normal;
+  font-weight: 400;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_AMS-Regular.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_AMS-Regular.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_AMS-Regular.ttf) format("truetype");
+}
+@font-face {
+  font-family: KaTeX_Caligraphic;
+  font-style: normal;
+  font-weight: 700;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Caligraphic-Bold.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Caligraphic-Bold.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Caligraphic-Bold.ttf) format("truetype");
+}
+@font-face {
+  font-family: KaTeX_Caligraphic;
+  font-style: normal;
+  font-weight: 400;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Caligraphic-Regular.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Caligraphic-Regular.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Caligraphic-Regular.ttf) format("truetype");
+}
+@font-face {
+  font-family: KaTeX_Fraktur;
+  font-style: normal;
+  font-weight: 700;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Fraktur-Bold.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Fraktur-Bold.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Fraktur-Bold.ttf) format("truetype");
+}
+@font-face {
+  font-family: KaTeX_Fraktur;
+  font-style: normal;
+  font-weight: 400;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Fraktur-Regular.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Fraktur-Regular.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Fraktur-Regular.ttf) format("truetype");
+}
+@font-face {
+  font-family: KaTeX_Main;
+  font-style: normal;
+  font-weight: 700;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Main-Bold.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Main-Bold.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Main-Bold.ttf) format("truetype");
+}
+@font-face {
+  font-family: KaTeX_Main;
+  font-style: italic;
+  font-weight: 700;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Main-BoldItalic.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Main-BoldItalic.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Main-BoldItalic.ttf) format("truetype");
+}
+@font-face {
+  font-family: KaTeX_Main;
+  font-style: italic;
+  font-weight: 400;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Main-Italic.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Main-Italic.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Main-Italic.ttf) format("truetype");
+}
+@font-face {
+  font-family: KaTeX_Main;
+  font-style: normal;
+  font-weight: 400;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Main-Regular.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Main-Regular.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Main-Regular.ttf) format("truetype");
+}
+@font-face {
+  font-family: KaTeX_Math;
+  font-style: italic;
+  font-weight: 700;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Math-BoldItalic.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Math-BoldItalic.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Math-BoldItalic.ttf) format("truetype");
+}
+@font-face {
+  font-family: KaTeX_Math;
+  font-style: italic;
+  font-weight: 400;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Math-Italic.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Math-Italic.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Math-Italic.ttf) format("truetype");
+}
+@font-face {
+  font-family: "KaTeX_SansSerif";
+  font-style: normal;
+  font-weight: 700;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_SansSerif-Bold.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_SansSerif-Bold.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_SansSerif-Bold.ttf) format("truetype");
+}
+@font-face {
+  font-family: "KaTeX_SansSerif";
+  font-style: italic;
+  font-weight: 400;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_SansSerif-Italic.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_SansSerif-Italic.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_SansSerif-Italic.ttf) format("truetype");
+}
+@font-face {
+  font-family: "KaTeX_SansSerif";
+  font-style: normal;
+  font-weight: 400;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_SansSerif-Regular.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_SansSerif-Regular.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_SansSerif-Regular.ttf) format("truetype");
+}
+@font-face {
+  font-family: KaTeX_Script;
+  font-style: normal;
+  font-weight: 400;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Script-Regular.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Script-Regular.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Script-Regular.ttf) format("truetype");
+}
+@font-face {
+  font-family: KaTeX_Size1;
+  font-style: normal;
+  font-weight: 400;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Size1-Regular.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Size1-Regular.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Size1-Regular.ttf) format("truetype");
+}
+@font-face {
+  font-family: KaTeX_Size2;
+  font-style: normal;
+  font-weight: 400;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Size2-Regular.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Size2-Regular.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Size2-Regular.ttf) format("truetype");
+}
+@font-face {
+  font-family: KaTeX_Size3;
+  font-style: normal;
+  font-weight: 400;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Size3-Regular.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Size3-Regular.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Size3-Regular.ttf) format("truetype");
+}
+@font-face {
+  font-family: KaTeX_Size4;
+  font-style: normal;
+  font-weight: 400;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Size4-Regular.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Size4-Regular.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Size4-Regular.ttf) format("truetype");
+}
+@font-face {
+  font-family: KaTeX_Typewriter;
+  font-style: normal;
+  font-weight: 400;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Typewriter-Regular.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Typewriter-Regular.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Typewriter-Regular.ttf) format("truetype");
+}
+.katex {
+  text-rendering: auto;
+  font: normal 1.21em KaTeX_Main, Times New Roman, serif;
+  line-height: 1.2;
+  text-indent: 0;
+}
+
+.katex * {
+  -ms-high-contrast-adjust: none !important;
+  border-color: currentColor;
+}
+
+.katex .katex-version:after {
+  content: "0.13.24";
+}
+
+.katex .katex-mathml {
+  clip: rect(1px, 1px, 1px, 1px);
+  border: 0;
+  height: 1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  width: 1px;
+}
+
+.katex .katex-html > .newline {
+  display: block;
+}
+
+.katex .base {
+  position: relative;
+  white-space: nowrap;
+  width: -webkit-min-content;
+  width: -moz-min-content;
+  width: min-content;
+}
+
+.katex .base, .katex .strut {
+  display: inline-block;
+}
+
+.katex .textbf {
+  font-weight: 700;
+}
+
+.katex .textit {
+  font-style: italic;
+}
+
+.katex .textrm {
+  font-family: KaTeX_Main;
+}
+
+.katex .textsf {
+  font-family: KaTeX_SansSerif;
+}
+
+.katex .texttt {
+  font-family: KaTeX_Typewriter;
+}
+
+.katex .mathnormal {
+  font-family: KaTeX_Math;
+  font-style: italic;
+}
+
+.katex .mathit {
+  font-family: KaTeX_Main;
+  font-style: italic;
+}
+
+.katex .mathrm {
+  font-style: normal;
+}
+
+.katex .mathbf {
+  font-family: KaTeX_Main;
+  font-weight: 700;
+}
+
+.katex .boldsymbol {
+  font-family: KaTeX_Math;
+  font-style: italic;
+  font-weight: 700;
+}
+
+.katex .amsrm, .katex .mathbb, .katex .textbb {
+  font-family: KaTeX_AMS;
+}
+
+.katex .mathcal {
+  font-family: KaTeX_Caligraphic;
+}
+
+.katex .mathfrak, .katex .textfrak {
+  font-family: KaTeX_Fraktur;
+}
+
+.katex .mathtt {
+  font-family: KaTeX_Typewriter;
+}
+
+.katex .mathscr, .katex .textscr {
+  font-family: KaTeX_Script;
+}
+
+.katex .mathsf, .katex .textsf {
+  font-family: KaTeX_SansSerif;
+}
+
+.katex .mathboldsf, .katex .textboldsf {
+  font-family: KaTeX_SansSerif;
+  font-weight: 700;
+}
+
+.katex .mathitsf, .katex .textitsf {
+  font-family: KaTeX_SansSerif;
+  font-style: italic;
+}
+
+.katex .mainrm {
+  font-family: KaTeX_Main;
+  font-style: normal;
+}
+
+.katex .vlist-t {
+  border-collapse: collapse;
+  display: inline-table;
+  table-layout: fixed;
+}
+
+.katex .vlist-r {
+  display: table-row;
+}
+
+.katex .vlist {
+  display: table-cell;
+  position: relative;
+  vertical-align: bottom;
+}
+
+.katex .vlist > span {
+  display: block;
+  height: 0;
+  position: relative;
+}
+
+.katex .vlist > span > span {
+  display: inline-block;
+}
+
+.katex .vlist > span > .pstrut {
+  overflow: hidden;
+  width: 0;
+}
+
+.katex .vlist-t2 {
+  margin-right: -2px;
+}
+
+.katex .vlist-s {
+  display: table-cell;
+  font-size: 1px;
+  min-width: 2px;
+  vertical-align: bottom;
+  width: 2px;
+}
+
+.katex .vbox {
+  align-items: baseline;
+  display: inline-flex;
+  flex-direction: column;
+}
+
+.katex .hbox {
+  width: 100%;
+}
+
+.katex .hbox, .katex .thinbox {
+  display: inline-flex;
+  flex-direction: row;
+}
+
+.katex .thinbox {
+  max-width: 0;
+  width: 0;
+}
+
+.katex .msupsub {
+  text-align: left;
+}
+
+.katex .mfrac > span > span {
+  text-align: center;
+}
+
+.katex .mfrac .frac-line {
+  border-bottom-style: solid;
+  display: inline-block;
+  width: 100%;
+}
+
+.katex .hdashline, .katex .hline, .katex .mfrac .frac-line, .katex .overline .overline-line, .katex .rule, .katex .underline .underline-line {
+  min-height: 1px;
+}
+
+.katex .mspace {
+  display: inline-block;
+}
+
+.katex .clap, .katex .llap, .katex .rlap {
+  position: relative;
+  width: 0;
+}
+
+.katex .clap > .inner, .katex .llap > .inner, .katex .rlap > .inner {
+  position: absolute;
+}
+
+.katex .clap > .fix, .katex .llap > .fix, .katex .rlap > .fix {
+  display: inline-block;
+}
+
+.katex .llap > .inner {
+  right: 0;
+}
+
+.katex .clap > .inner, .katex .rlap > .inner {
+  left: 0;
+}
+
+.katex .clap > .inner > span {
+  margin-left: -50%;
+  margin-right: 50%;
+}
+
+.katex .rule {
+  border: 0 solid;
+  display: inline-block;
+  position: relative;
+}
+
+.katex .hline, .katex .overline .overline-line, .katex .underline .underline-line {
+  border-bottom-style: solid;
+  display: inline-block;
+  width: 100%;
+}
+
+.katex .hdashline {
+  border-bottom-style: dashed;
+  display: inline-block;
+  width: 100%;
+}
+
+.katex .sqrt > .root {
+  margin-left: 0.27777778em;
+  margin-right: -0.55555556em;
+}
+
+.katex .fontsize-ensurer.reset-size1.size1, .katex .sizing.reset-size1.size1 {
+  font-size: 1em;
+}
+
+.katex .fontsize-ensurer.reset-size1.size2, .katex .sizing.reset-size1.size2 {
+  font-size: 1.2em;
+}
+
+.katex .fontsize-ensurer.reset-size1.size3, .katex .sizing.reset-size1.size3 {
+  font-size: 1.4em;
+}
+
+.katex .fontsize-ensurer.reset-size1.size4, .katex .sizing.reset-size1.size4 {
+  font-size: 1.6em;
+}
+
+.katex .fontsize-ensurer.reset-size1.size5, .katex .sizing.reset-size1.size5 {
+  font-size: 1.8em;
+}
+
+.katex .fontsize-ensurer.reset-size1.size6, .katex .sizing.reset-size1.size6 {
+  font-size: 2em;
+}
+
+.katex .fontsize-ensurer.reset-size1.size7, .katex .sizing.reset-size1.size7 {
+  font-size: 2.4em;
+}
+
+.katex .fontsize-ensurer.reset-size1.size8, .katex .sizing.reset-size1.size8 {
+  font-size: 2.88em;
+}
+
+.katex .fontsize-ensurer.reset-size1.size9, .katex .sizing.reset-size1.size9 {
+  font-size: 3.456em;
+}
+
+.katex .fontsize-ensurer.reset-size1.size10, .katex .sizing.reset-size1.size10 {
+  font-size: 4.148em;
+}
+
+.katex .fontsize-ensurer.reset-size1.size11, .katex .sizing.reset-size1.size11 {
+  font-size: 4.976em;
+}
+
+.katex .fontsize-ensurer.reset-size2.size1, .katex .sizing.reset-size2.size1 {
+  font-size: 0.83333333em;
+}
+
+.katex .fontsize-ensurer.reset-size2.size2, .katex .sizing.reset-size2.size2 {
+  font-size: 1em;
+}
+
+.katex .fontsize-ensurer.reset-size2.size3, .katex .sizing.reset-size2.size3 {
+  font-size: 1.16666667em;
+}
+
+.katex .fontsize-ensurer.reset-size2.size4, .katex .sizing.reset-size2.size4 {
+  font-size: 1.33333333em;
+}
+
+.katex .fontsize-ensurer.reset-size2.size5, .katex .sizing.reset-size2.size5 {
+  font-size: 1.5em;
+}
+
+.katex .fontsize-ensurer.reset-size2.size6, .katex .sizing.reset-size2.size6 {
+  font-size: 1.66666667em;
+}
+
+.katex .fontsize-ensurer.reset-size2.size7, .katex .sizing.reset-size2.size7 {
+  font-size: 2em;
+}
+
+.katex .fontsize-ensurer.reset-size2.size8, .katex .sizing.reset-size2.size8 {
+  font-size: 2.4em;
+}
+
+.katex .fontsize-ensurer.reset-size2.size9, .katex .sizing.reset-size2.size9 {
+  font-size: 2.88em;
+}
+
+.katex .fontsize-ensurer.reset-size2.size10, .katex .sizing.reset-size2.size10 {
+  font-size: 3.45666667em;
+}
+
+.katex .fontsize-ensurer.reset-size2.size11, .katex .sizing.reset-size2.size11 {
+  font-size: 4.14666667em;
+}
+
+.katex .fontsize-ensurer.reset-size3.size1, .katex .sizing.reset-size3.size1 {
+  font-size: 0.71428571em;
+}
+
+.katex .fontsize-ensurer.reset-size3.size2, .katex .sizing.reset-size3.size2 {
+  font-size: 0.85714286em;
+}
+
+.katex .fontsize-ensurer.reset-size3.size3, .katex .sizing.reset-size3.size3 {
+  font-size: 1em;
+}
+
+.katex .fontsize-ensurer.reset-size3.size4, .katex .sizing.reset-size3.size4 {
+  font-size: 1.14285714em;
+}
+
+.katex .fontsize-ensurer.reset-size3.size5, .katex .sizing.reset-size3.size5 {
+  font-size: 1.28571429em;
+}
+
+.katex .fontsize-ensurer.reset-size3.size6, .katex .sizing.reset-size3.size6 {
+  font-size: 1.42857143em;
+}
+
+.katex .fontsize-ensurer.reset-size3.size7, .katex .sizing.reset-size3.size7 {
+  font-size: 1.71428571em;
+}
+
+.katex .fontsize-ensurer.reset-size3.size8, .katex .sizing.reset-size3.size8 {
+  font-size: 2.05714286em;
+}
+
+.katex .fontsize-ensurer.reset-size3.size9, .katex .sizing.reset-size3.size9 {
+  font-size: 2.46857143em;
+}
+
+.katex .fontsize-ensurer.reset-size3.size10, .katex .sizing.reset-size3.size10 {
+  font-size: 2.96285714em;
+}
+
+.katex .fontsize-ensurer.reset-size3.size11, .katex .sizing.reset-size3.size11 {
+  font-size: 3.55428571em;
+}
+
+.katex .fontsize-ensurer.reset-size4.size1, .katex .sizing.reset-size4.size1 {
+  font-size: 0.625em;
+}
+
+.katex .fontsize-ensurer.reset-size4.size2, .katex .sizing.reset-size4.size2 {
+  font-size: 0.75em;
+}
+
+.katex .fontsize-ensurer.reset-size4.size3, .katex .sizing.reset-size4.size3 {
+  font-size: 0.875em;
+}
+
+.katex .fontsize-ensurer.reset-size4.size4, .katex .sizing.reset-size4.size4 {
+  font-size: 1em;
+}
+
+.katex .fontsize-ensurer.reset-size4.size5, .katex .sizing.reset-size4.size5 {
+  font-size: 1.125em;
+}
+
+.katex .fontsize-ensurer.reset-size4.size6, .katex .sizing.reset-size4.size6 {
+  font-size: 1.25em;
+}
+
+.katex .fontsize-ensurer.reset-size4.size7, .katex .sizing.reset-size4.size7 {
+  font-size: 1.5em;
+}
+
+.katex .fontsize-ensurer.reset-size4.size8, .katex .sizing.reset-size4.size8 {
+  font-size: 1.8em;
+}
+
+.katex .fontsize-ensurer.reset-size4.size9, .katex .sizing.reset-size4.size9 {
+  font-size: 2.16em;
+}
+
+.katex .fontsize-ensurer.reset-size4.size10, .katex .sizing.reset-size4.size10 {
+  font-size: 2.5925em;
+}
+
+.katex .fontsize-ensurer.reset-size4.size11, .katex .sizing.reset-size4.size11 {
+  font-size: 3.11em;
+}
+
+.katex .fontsize-ensurer.reset-size5.size1, .katex .sizing.reset-size5.size1 {
+  font-size: 0.55555556em;
+}
+
+.katex .fontsize-ensurer.reset-size5.size2, .katex .sizing.reset-size5.size2 {
+  font-size: 0.66666667em;
+}
+
+.katex .fontsize-ensurer.reset-size5.size3, .katex .sizing.reset-size5.size3 {
+  font-size: 0.77777778em;
+}
+
+.katex .fontsize-ensurer.reset-size5.size4, .katex .sizing.reset-size5.size4 {
+  font-size: 0.88888889em;
+}
+
+.katex .fontsize-ensurer.reset-size5.size5, .katex .sizing.reset-size5.size5 {
+  font-size: 1em;
+}
+
+.katex .fontsize-ensurer.reset-size5.size6, .katex .sizing.reset-size5.size6 {
+  font-size: 1.11111111em;
+}
+
+.katex .fontsize-ensurer.reset-size5.size7, .katex .sizing.reset-size5.size7 {
+  font-size: 1.33333333em;
+}
+
+.katex .fontsize-ensurer.reset-size5.size8, .katex .sizing.reset-size5.size8 {
+  font-size: 1.6em;
+}
+
+.katex .fontsize-ensurer.reset-size5.size9, .katex .sizing.reset-size5.size9 {
+  font-size: 1.92em;
+}
+
+.katex .fontsize-ensurer.reset-size5.size10, .katex .sizing.reset-size5.size10 {
+  font-size: 2.30444444em;
+}
+
+.katex .fontsize-ensurer.reset-size5.size11, .katex .sizing.reset-size5.size11 {
+  font-size: 2.76444444em;
+}
+
+.katex .fontsize-ensurer.reset-size6.size1, .katex .sizing.reset-size6.size1 {
+  font-size: 0.5em;
+}
+
+.katex .fontsize-ensurer.reset-size6.size2, .katex .sizing.reset-size6.size2 {
+  font-size: 0.6em;
+}
+
+.katex .fontsize-ensurer.reset-size6.size3, .katex .sizing.reset-size6.size3 {
+  font-size: 0.7em;
+}
+
+.katex .fontsize-ensurer.reset-size6.size4, .katex .sizing.reset-size6.size4 {
+  font-size: 0.8em;
+}
+
+.katex .fontsize-ensurer.reset-size6.size5, .katex .sizing.reset-size6.size5 {
+  font-size: 0.9em;
+}
+
+.katex .fontsize-ensurer.reset-size6.size6, .katex .sizing.reset-size6.size6 {
+  font-size: 1em;
+}
+
+.katex .fontsize-ensurer.reset-size6.size7, .katex .sizing.reset-size6.size7 {
+  font-size: 1.2em;
+}
+
+.katex .fontsize-ensurer.reset-size6.size8, .katex .sizing.reset-size6.size8 {
+  font-size: 1.44em;
+}
+
+.katex .fontsize-ensurer.reset-size6.size9, .katex .sizing.reset-size6.size9 {
+  font-size: 1.728em;
+}
+
+.katex .fontsize-ensurer.reset-size6.size10, .katex .sizing.reset-size6.size10 {
+  font-size: 2.074em;
+}
+
+.katex .fontsize-ensurer.reset-size6.size11, .katex .sizing.reset-size6.size11 {
+  font-size: 2.488em;
+}
+
+.katex .fontsize-ensurer.reset-size7.size1, .katex .sizing.reset-size7.size1 {
+  font-size: 0.41666667em;
+}
+
+.katex .fontsize-ensurer.reset-size7.size2, .katex .sizing.reset-size7.size2 {
+  font-size: 0.5em;
+}
+
+.katex .fontsize-ensurer.reset-size7.size3, .katex .sizing.reset-size7.size3 {
+  font-size: 0.58333333em;
+}
+
+.katex .fontsize-ensurer.reset-size7.size4, .katex .sizing.reset-size7.size4 {
+  font-size: 0.66666667em;
+}
+
+.katex .fontsize-ensurer.reset-size7.size5, .katex .sizing.reset-size7.size5 {
+  font-size: 0.75em;
+}
+
+.katex .fontsize-ensurer.reset-size7.size6, .katex .sizing.reset-size7.size6 {
+  font-size: 0.83333333em;
+}
+
+.katex .fontsize-ensurer.reset-size7.size7, .katex .sizing.reset-size7.size7 {
+  font-size: 1em;
+}
+
+.katex .fontsize-ensurer.reset-size7.size8, .katex .sizing.reset-size7.size8 {
+  font-size: 1.2em;
+}
+
+.katex .fontsize-ensurer.reset-size7.size9, .katex .sizing.reset-size7.size9 {
+  font-size: 1.44em;
+}
+
+.katex .fontsize-ensurer.reset-size7.size10, .katex .sizing.reset-size7.size10 {
+  font-size: 1.72833333em;
+}
+
+.katex .fontsize-ensurer.reset-size7.size11, .katex .sizing.reset-size7.size11 {
+  font-size: 2.07333333em;
+}
+
+.katex .fontsize-ensurer.reset-size8.size1, .katex .sizing.reset-size8.size1 {
+  font-size: 0.34722222em;
+}
+
+.katex .fontsize-ensurer.reset-size8.size2, .katex .sizing.reset-size8.size2 {
+  font-size: 0.41666667em;
+}
+
+.katex .fontsize-ensurer.reset-size8.size3, .katex .sizing.reset-size8.size3 {
+  font-size: 0.48611111em;
+}
+
+.katex .fontsize-ensurer.reset-size8.size4, .katex .sizing.reset-size8.size4 {
+  font-size: 0.55555556em;
+}
+
+.katex .fontsize-ensurer.reset-size8.size5, .katex .sizing.reset-size8.size5 {
+  font-size: 0.625em;
+}
+
+.katex .fontsize-ensurer.reset-size8.size6, .katex .sizing.reset-size8.size6 {
+  font-size: 0.69444444em;
+}
+
+.katex .fontsize-ensurer.reset-size8.size7, .katex .sizing.reset-size8.size7 {
+  font-size: 0.83333333em;
+}
+
+.katex .fontsize-ensurer.reset-size8.size8, .katex .sizing.reset-size8.size8 {
+  font-size: 1em;
+}
+
+.katex .fontsize-ensurer.reset-size8.size9, .katex .sizing.reset-size8.size9 {
+  font-size: 1.2em;
+}
+
+.katex .fontsize-ensurer.reset-size8.size10, .katex .sizing.reset-size8.size10 {
+  font-size: 1.44027778em;
+}
+
+.katex .fontsize-ensurer.reset-size8.size11, .katex .sizing.reset-size8.size11 {
+  font-size: 1.72777778em;
+}
+
+.katex .fontsize-ensurer.reset-size9.size1, .katex .sizing.reset-size9.size1 {
+  font-size: 0.28935185em;
+}
+
+.katex .fontsize-ensurer.reset-size9.size2, .katex .sizing.reset-size9.size2 {
+  font-size: 0.34722222em;
+}
+
+.katex .fontsize-ensurer.reset-size9.size3, .katex .sizing.reset-size9.size3 {
+  font-size: 0.40509259em;
+}
+
+.katex .fontsize-ensurer.reset-size9.size4, .katex .sizing.reset-size9.size4 {
+  font-size: 0.46296296em;
+}
+
+.katex .fontsize-ensurer.reset-size9.size5, .katex .sizing.reset-size9.size5 {
+  font-size: 0.52083333em;
+}
+
+.katex .fontsize-ensurer.reset-size9.size6, .katex .sizing.reset-size9.size6 {
+  font-size: 0.5787037em;
+}
+
+.katex .fontsize-ensurer.reset-size9.size7, .katex .sizing.reset-size9.size7 {
+  font-size: 0.69444444em;
+}
+
+.katex .fontsize-ensurer.reset-size9.size8, .katex .sizing.reset-size9.size8 {
+  font-size: 0.83333333em;
+}
+
+.katex .fontsize-ensurer.reset-size9.size9, .katex .sizing.reset-size9.size9 {
+  font-size: 1em;
+}
+
+.katex .fontsize-ensurer.reset-size9.size10, .katex .sizing.reset-size9.size10 {
+  font-size: 1.20023148em;
+}
+
+.katex .fontsize-ensurer.reset-size9.size11, .katex .sizing.reset-size9.size11 {
+  font-size: 1.43981481em;
+}
+
+.katex .fontsize-ensurer.reset-size10.size1, .katex .sizing.reset-size10.size1 {
+  font-size: 0.24108004em;
+}
+
+.katex .fontsize-ensurer.reset-size10.size2, .katex .sizing.reset-size10.size2 {
+  font-size: 0.28929605em;
+}
+
+.katex .fontsize-ensurer.reset-size10.size3, .katex .sizing.reset-size10.size3 {
+  font-size: 0.33751205em;
+}
+
+.katex .fontsize-ensurer.reset-size10.size4, .katex .sizing.reset-size10.size4 {
+  font-size: 0.38572806em;
+}
+
+.katex .fontsize-ensurer.reset-size10.size5, .katex .sizing.reset-size10.size5 {
+  font-size: 0.43394407em;
+}
+
+.katex .fontsize-ensurer.reset-size10.size6, .katex .sizing.reset-size10.size6 {
+  font-size: 0.48216008em;
+}
+
+.katex .fontsize-ensurer.reset-size10.size7, .katex .sizing.reset-size10.size7 {
+  font-size: 0.57859209em;
+}
+
+.katex .fontsize-ensurer.reset-size10.size8, .katex .sizing.reset-size10.size8 {
+  font-size: 0.69431051em;
+}
+
+.katex .fontsize-ensurer.reset-size10.size9, .katex .sizing.reset-size10.size9 {
+  font-size: 0.83317261em;
+}
+
+.katex .fontsize-ensurer.reset-size10.size10, .katex .sizing.reset-size10.size10 {
+  font-size: 1em;
+}
+
+.katex .fontsize-ensurer.reset-size10.size11, .katex .sizing.reset-size10.size11 {
+  font-size: 1.19961427em;
+}
+
+.katex .fontsize-ensurer.reset-size11.size1, .katex .sizing.reset-size11.size1 {
+  font-size: 0.20096463em;
+}
+
+.katex .fontsize-ensurer.reset-size11.size2, .katex .sizing.reset-size11.size2 {
+  font-size: 0.24115756em;
+}
+
+.katex .fontsize-ensurer.reset-size11.size3, .katex .sizing.reset-size11.size3 {
+  font-size: 0.28135048em;
+}
+
+.katex .fontsize-ensurer.reset-size11.size4, .katex .sizing.reset-size11.size4 {
+  font-size: 0.32154341em;
+}
+
+.katex .fontsize-ensurer.reset-size11.size5, .katex .sizing.reset-size11.size5 {
+  font-size: 0.36173633em;
+}
+
+.katex .fontsize-ensurer.reset-size11.size6, .katex .sizing.reset-size11.size6 {
+  font-size: 0.40192926em;
+}
+
+.katex .fontsize-ensurer.reset-size11.size7, .katex .sizing.reset-size11.size7 {
+  font-size: 0.48231511em;
+}
+
+.katex .fontsize-ensurer.reset-size11.size8, .katex .sizing.reset-size11.size8 {
+  font-size: 0.57877814em;
+}
+
+.katex .fontsize-ensurer.reset-size11.size9, .katex .sizing.reset-size11.size9 {
+  font-size: 0.69453376em;
+}
+
+.katex .fontsize-ensurer.reset-size11.size10, .katex .sizing.reset-size11.size10 {
+  font-size: 0.83360129em;
+}
+
+.katex .fontsize-ensurer.reset-size11.size11, .katex .sizing.reset-size11.size11 {
+  font-size: 1em;
+}
+
+.katex .delimsizing.size1 {
+  font-family: KaTeX_Size1;
+}
+
+.katex .delimsizing.size2 {
+  font-family: KaTeX_Size2;
+}
+
+.katex .delimsizing.size3 {
+  font-family: KaTeX_Size3;
+}
+
+.katex .delimsizing.size4 {
+  font-family: KaTeX_Size4;
+}
+
+.katex .delimsizing.mult .delim-size1 > span {
+  font-family: KaTeX_Size1;
+}
+
+.katex .delimsizing.mult .delim-size4 > span {
+  font-family: KaTeX_Size4;
+}
+
+.katex .nulldelimiter {
+  display: inline-block;
+  width: 0.12em;
+}
+
+.katex .delimcenter, .katex .op-symbol {
+  position: relative;
+}
+
+.katex .op-symbol.small-op {
+  font-family: KaTeX_Size1;
+}
+
+.katex .op-symbol.large-op {
+  font-family: KaTeX_Size2;
+}
+
+.katex .accent > .vlist-t, .katex .op-limits > .vlist-t {
+  text-align: center;
+}
+
+.katex .accent .accent-body {
+  position: relative;
+}
+
+.katex .accent .accent-body:not(.accent-full) {
+  width: 0;
+}
+
+.katex .overlay {
+  display: block;
+}
+
+.katex .mtable .vertical-separator {
+  display: inline-block;
+  min-width: 1px;
+}
+
+.katex .mtable .arraycolsep {
+  display: inline-block;
+}
+
+.katex .mtable .col-align-c > .vlist-t {
+  text-align: center;
+}
+
+.katex .mtable .col-align-l > .vlist-t {
+  text-align: left;
+}
+
+.katex .mtable .col-align-r > .vlist-t {
+  text-align: right;
+}
+
+.katex .svg-align {
+  text-align: left;
+}
+
+.katex svg {
+  fill: currentColor;
+  stroke: currentColor;
+  fill-rule: nonzero;
+  fill-opacity: 1;
+  stroke-width: 1;
+  stroke-linecap: butt;
+  stroke-linejoin: miter;
+  stroke-miterlimit: 4;
+  stroke-dasharray: none;
+  stroke-dashoffset: 0;
+  stroke-opacity: 1;
+  display: block;
+  height: inherit;
+  position: absolute;
+  width: 100%;
+}
+
+.katex svg path {
+  stroke: none;
+}
+
+.katex img {
+  border-style: none;
+  max-height: none;
+  max-width: none;
+  min-height: 0;
+  min-width: 0;
+}
+
+.katex .stretchy {
+  display: block;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.katex .stretchy:after, .katex .stretchy:before {
+  content: "";
+}
+
+.katex .hide-tail {
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.katex .halfarrow-left {
+  left: 0;
+  overflow: hidden;
+  position: absolute;
+  width: 50.2%;
+}
+
+.katex .halfarrow-right {
+  overflow: hidden;
+  position: absolute;
+  right: 0;
+  width: 50.2%;
+}
+
+.katex .brace-left {
+  left: 0;
+  overflow: hidden;
+  position: absolute;
+  width: 25.1%;
+}
+
+.katex .brace-center {
+  left: 25%;
+  overflow: hidden;
+  position: absolute;
+  width: 50%;
+}
+
+.katex .brace-right {
+  overflow: hidden;
+  position: absolute;
+  right: 0;
+  width: 25.1%;
+}
+
+.katex .x-arrow-pad {
+  padding: 0 0.5em;
+}
+
+.katex .cd-arrow-pad {
+  padding: 0 0.55556em 0 0.27778em;
+}
+
+.katex .mover, .katex .munder, .katex .x-arrow {
+  text-align: center;
+}
+
+.katex .boxpad {
+  padding: 0 0.3em;
+}
+
+.katex .fbox, .katex .fcolorbox {
+  border: 0.04em solid;
+  box-sizing: border-box;
+}
+
+.katex .cancel-pad {
+  padding: 0 0.2em;
+}
+
+.katex .cancel-lap {
+  margin-left: -0.2em;
+  margin-right: -0.2em;
+}
+
+.katex .sout {
+  border-bottom-style: solid;
+  border-bottom-width: 0.08em;
+}
+
+.katex .angl {
+  border-right: 0.049em solid;
+  border-top: 0.049em solid;
+  box-sizing: border-box;
+  margin-right: 0.03889em;
+}
+
+.katex .anglpad {
+  padding: 0 0.03889em;
+}
+
+.katex .eqn-num:before {
+  content: "(" counter(katexEqnNo) ")";
+  counter-increment: katexEqnNo;
+}
+
+.katex .mml-eqn-num:before {
+  content: "(" counter(mmlEqnNo) ")";
+  counter-increment: mmlEqnNo;
+}
+
+.katex .mtr-glue {
+  width: 50%;
+}
+
+.katex .cd-vert-arrow {
+  display: inline-block;
+  position: relative;
+}
+
+.katex .cd-label-left {
+  display: inline-block;
+  position: absolute;
+  right: calc(50% + 0.3em);
+  text-align: left;
+}
+
+.katex .cd-label-right {
+  display: inline-block;
+  left: calc(50% + 0.3em);
+  position: absolute;
+  text-align: right;
+}
+
+.katex-display {
+  display: block;
+  margin: 1em 0;
+  text-align: center;
+}
+
+.katex-display > .katex {
+  display: block;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.katex-display > .katex > .katex-html {
+  display: block;
+  position: relative;
+}
+
+.katex-display > .katex > .katex-html > .tag {
+  position: absolute;
+  right: 0;
+}
+
+.katex-display.leqno > .katex > .katex-html > .tag {
+  left: 0;
+  right: auto;
+}
+
+.katex-display.fleqn > .katex {
+  padding-left: 2em;
+  text-align: left;
+}
+
+body {
+  counter-reset: katexEqnNo mmlEqnNo;
+}
+
+[data-node-type=math-inline] {
+  font-size: 0.9em;
+  display: inline-block;
+  vertical-align: middle;
+  max-width: 100%;
+}
+
+[data-node-type=math-block] {
+  font-size: 20px;
+  text-align: center;
+  max-width: 100%;
+  position: relative;
+  display: flex;
+}
+[data-node-type=math-block] > span {
+  flex-grow: 1;
+}
+[data-node-type=math-block] > span:first-child {
+  flex-shrink: 2;
+}
+[data-node-type=math-block] > span:nth-child(2) {
+  flex-shrink: 0;
+}
+[data-node-type=math-block] > span:last-child {
+  flex-shrink: 1;
+  text-align: right;
+}
+
+.math-label {
+  text-align: center;
+  font-family: Georgia, Cambria, "Times New Roman", Times, "DejaVu Serif", source-han-serif-tc, source-han-serif-korean, source-han-serif-japanese, source-han-serif-sc, serif;
+}
+
+.equation-label {
+  text-align: center;
+  font-family: Georgia, Cambria, "Times New Roman", Times, "DejaVu Serif", source-han-serif-tc, source-han-serif-korean, source-han-serif-japanese, source-han-serif-sc, serif;
+}
+
+.editor {
+  /*! fileicon.css v0.1.1 | MIT License | github.com/picturepan2/fileicon.css */
+  /* fileicon.basic */
+  /* fileicons */
+  /* fileicon.types */
+  /* This clunky table, tableWrapper thing is because */
+  /* isReadOnly removes the wrapping div, so margins don't */
+  /* collapse as expected in all situations. */
+}
+.editor:focus {
+  outline: none !important;
+}
+.editor .prosemirror-placeholder {
+  opacity: 0.5;
+  white-space: nowrap;
+  position: relative;
+}
+.editor .prosemirror-placeholder:after {
+  position: absolute;
+  top: 0;
+  content: attr(data-content);
+}
+.editor .ProseMirror-selectednode {
+  outline: 2px solid #bbbdc0;
+}
+.editor.read-only .ProseMirror-selectednode {
+  outline: 0px solid #bbbdc0;
+}
+.editor h1 a,
+.editor h2 a,
+.editor h3 a,
+.editor h4 a,
+.editor h5 a,
+.editor h6 a {
+  text-decoration: none;
+  color: inherit;
+}
+.editor .footnote {
+  vertical-align: super;
+  font-size: 0.85em;
+  line-height: 1;
+}
+.editor span.citation {
+  color: #808080;
+  font-weight: bold;
+}
+.editor a.reference.missing {
+  color: darkred;
+}
+.editor table {
+  /* Prosemirror requires white-space: pre-wrap, but it's overriden by the quirks.css */
+  /* built-in that Firefox provides, breaking the editor. */
+  /* See https://github.com/ProseMirror/prosemirror/issues/651#issuecomment-313436150 */
+  white-space: pre-wrap !important;
+}
+.editor sup,
+.editor sub {
+  position: static;
+}
+.editor sub {
+  vertical-align: sub;
+}
+.editor sup {
+  vertical-align: super;
+}
+.editor .collab-cursor {
+  position: relative;
+  font-family: -apple-system, "BlinkMacSystemFont", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Open Sans", "Helvetica Neue", sans-serif;
+  color: white;
+  user-select: none;
+  vertical-align: top;
+}
+.editor .collab-cursor .inner-bar {
+  position: absolute;
+  height: calc(1em + 5px);
+  width: 2px;
+  background-color: rgb(0, 25, 150);
+  bottom: 0px;
+  left: 0;
+}
+.editor .collab-cursor .inner-bar .inner-circle-small {
+  position: absolute;
+  height: 8px;
+  width: 8px;
+  border-radius: 8px;
+  background-color: rgb(0, 25, 150);
+  bottom: calc(100% + 0px);
+  left: -3px;
+}
+.editor .collab-cursor .inner-bar .hover-wrapper {
+  transform: scale(0.4);
+  opacity: 0;
+  transform-origin: bottom left;
+  transition: 0.1s 0.3s linear transform, 0s 0.4s linear opacity;
+  display: block;
+  position: absolute;
+  bottom: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+.editor .collab-cursor .inner-bar .hover-wrapper .inner-circle-big {
+  position: absolute;
+  height: 24px;
+  width: 24px;
+  border-radius: 24px;
+  background-color: rgb(0, 25, 150);
+  bottom: 0px;
+  left: -11px;
+}
+.editor .collab-cursor .inner-bar .hover-wrapper .initials:after {
+  display: block;
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  bottom: 2px;
+  left: -9px;
+  font-size: 12px;
+  font-weight: bold;
+  line-height: 20px;
+  text-align: center;
+  z-index: 4;
+  white-space: nowrap;
+  user-select: none;
+}
+.editor .collab-cursor .inner-bar .hover-wrapper .name:after {
+  position: absolute;
+  display: block;
+  padding: 2px 12px;
+  border-radius: 2px;
+  color: white;
+  background-color: #777;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 400;
+  bottom: 2px;
+  left: 6px;
+  white-space: nowrap;
+  z-index: 3;
+  user-select: none;
+}
+.editor .collab-cursor .inner-bar .hover-wrapper .image:after {
+  position: absolute;
+  bottom: 2px;
+  left: -9px;
+  z-index: 5;
+  border-radius: 10px;
+  width: 20px;
+  height: 20px;
+  background-size: cover;
+  content: "";
+  max-width: none;
+  margin-top: 0px;
+}
+.editor .collab-cursor:hover .hover-wrapper {
+  opacity: 1;
+  transform: scale(1);
+  transition: 0.1s linear transform, 0s 0s linear opacity;
+}
+.editor figure {
+  display: block;
+  text-align: center;
+  margin: 0;
+}
+.editor figure > * {
+  pointer-events: none;
+  width: 100%;
+}
+.editor figure > a > img {
+  width: 100%;
+}
+.editor figure.ProseMirror-selectednode {
+  outline: 2px solid #bbbdc0;
+}
+.editor figure.ProseMirror-selectednode > * {
+  pointer-events: auto;
+}
+.editor figure[data-align=left] {
+  float: left;
+  margin: 0.5em 1.5em 0.5em 0em;
+}
+.editor figure[data-align=right] {
+  float: right;
+  margin: 0.5em 0em 0.5em 1.5em;
+}
+.editor figure[data-align=center] {
+  margin: 0 auto;
+}
+.editor figure[data-size="1"] {
+  width: 1%;
+}
+.editor figure[data-size="2"] {
+  width: 2%;
+}
+.editor figure[data-size="3"] {
+  width: 3%;
+}
+.editor figure[data-size="4"] {
+  width: 4%;
+}
+.editor figure[data-size="5"] {
+  width: 5%;
+}
+.editor figure[data-size="6"] {
+  width: 6%;
+}
+.editor figure[data-size="7"] {
+  width: 7%;
+}
+.editor figure[data-size="8"] {
+  width: 8%;
+}
+.editor figure[data-size="9"] {
+  width: 9%;
+}
+.editor figure[data-size="10"] {
+  width: 10%;
+}
+.editor figure[data-size="11"] {
+  width: 11%;
+}
+.editor figure[data-size="12"] {
+  width: 12%;
+}
+.editor figure[data-size="13"] {
+  width: 13%;
+}
+.editor figure[data-size="14"] {
+  width: 14%;
+}
+.editor figure[data-size="15"] {
+  width: 15%;
+}
+.editor figure[data-size="16"] {
+  width: 16%;
+}
+.editor figure[data-size="17"] {
+  width: 17%;
+}
+.editor figure[data-size="18"] {
+  width: 18%;
+}
+.editor figure[data-size="19"] {
+  width: 19%;
+}
+.editor figure[data-size="20"] {
+  width: 20%;
+}
+.editor figure[data-size="21"] {
+  width: 21%;
+}
+.editor figure[data-size="22"] {
+  width: 22%;
+}
+.editor figure[data-size="23"] {
+  width: 23%;
+}
+.editor figure[data-size="24"] {
+  width: 24%;
+}
+.editor figure[data-size="25"] {
+  width: 25%;
+}
+.editor figure[data-size="26"] {
+  width: 26%;
+}
+.editor figure[data-size="27"] {
+  width: 27%;
+}
+.editor figure[data-size="28"] {
+  width: 28%;
+}
+.editor figure[data-size="29"] {
+  width: 29%;
+}
+.editor figure[data-size="30"] {
+  width: 30%;
+}
+.editor figure[data-size="31"] {
+  width: 31%;
+}
+.editor figure[data-size="32"] {
+  width: 32%;
+}
+.editor figure[data-size="33"] {
+  width: 33%;
+}
+.editor figure[data-size="34"] {
+  width: 34%;
+}
+.editor figure[data-size="35"] {
+  width: 35%;
+}
+.editor figure[data-size="36"] {
+  width: 36%;
+}
+.editor figure[data-size="37"] {
+  width: 37%;
+}
+.editor figure[data-size="38"] {
+  width: 38%;
+}
+.editor figure[data-size="39"] {
+  width: 39%;
+}
+.editor figure[data-size="40"] {
+  width: 40%;
+}
+.editor figure[data-size="41"] {
+  width: 41%;
+}
+.editor figure[data-size="42"] {
+  width: 42%;
+}
+.editor figure[data-size="43"] {
+  width: 43%;
+}
+.editor figure[data-size="44"] {
+  width: 44%;
+}
+.editor figure[data-size="45"] {
+  width: 45%;
+}
+.editor figure[data-size="46"] {
+  width: 46%;
+}
+.editor figure[data-size="47"] {
+  width: 47%;
+}
+.editor figure[data-size="48"] {
+  width: 48%;
+}
+.editor figure[data-size="49"] {
+  width: 49%;
+}
+.editor figure[data-size="50"] {
+  width: 50%;
+}
+.editor figure[data-size="51"] {
+  width: 51%;
+}
+.editor figure[data-size="52"] {
+  width: 52%;
+}
+.editor figure[data-size="53"] {
+  width: 53%;
+}
+.editor figure[data-size="54"] {
+  width: 54%;
+}
+.editor figure[data-size="55"] {
+  width: 55%;
+}
+.editor figure[data-size="56"] {
+  width: 56%;
+}
+.editor figure[data-size="57"] {
+  width: 57%;
+}
+.editor figure[data-size="58"] {
+  width: 58%;
+}
+.editor figure[data-size="59"] {
+  width: 59%;
+}
+.editor figure[data-size="60"] {
+  width: 60%;
+}
+.editor figure[data-size="61"] {
+  width: 61%;
+}
+.editor figure[data-size="62"] {
+  width: 62%;
+}
+.editor figure[data-size="63"] {
+  width: 63%;
+}
+.editor figure[data-size="64"] {
+  width: 64%;
+}
+.editor figure[data-size="65"] {
+  width: 65%;
+}
+.editor figure[data-size="66"] {
+  width: 66%;
+}
+.editor figure[data-size="67"] {
+  width: 67%;
+}
+.editor figure[data-size="68"] {
+  width: 68%;
+}
+.editor figure[data-size="69"] {
+  width: 69%;
+}
+.editor figure[data-size="70"] {
+  width: 70%;
+}
+.editor figure[data-size="71"] {
+  width: 71%;
+}
+.editor figure[data-size="72"] {
+  width: 72%;
+}
+.editor figure[data-size="73"] {
+  width: 73%;
+}
+.editor figure[data-size="74"] {
+  width: 74%;
+}
+.editor figure[data-size="75"] {
+  width: 75%;
+}
+.editor figure[data-size="76"] {
+  width: 76%;
+}
+.editor figure[data-size="77"] {
+  width: 77%;
+}
+.editor figure[data-size="78"] {
+  width: 78%;
+}
+.editor figure[data-size="79"] {
+  width: 79%;
+}
+.editor figure[data-size="80"] {
+  width: 80%;
+}
+.editor figure[data-size="81"] {
+  width: 81%;
+}
+.editor figure[data-size="82"] {
+  width: 82%;
+}
+.editor figure[data-size="83"] {
+  width: 83%;
+}
+.editor figure[data-size="84"] {
+  width: 84%;
+}
+.editor figure[data-size="85"] {
+  width: 85%;
+}
+.editor figure[data-size="86"] {
+  width: 86%;
+}
+.editor figure[data-size="87"] {
+  width: 87%;
+}
+.editor figure[data-size="88"] {
+  width: 88%;
+}
+.editor figure[data-size="89"] {
+  width: 89%;
+}
+.editor figure[data-size="90"] {
+  width: 90%;
+}
+.editor figure[data-size="91"] {
+  width: 91%;
+}
+.editor figure[data-size="92"] {
+  width: 92%;
+}
+.editor figure[data-size="93"] {
+  width: 93%;
+}
+.editor figure[data-size="94"] {
+  width: 94%;
+}
+.editor figure[data-size="95"] {
+  width: 95%;
+}
+.editor figure[data-size="96"] {
+  width: 96%;
+}
+.editor figure[data-size="97"] {
+  width: 97%;
+}
+.editor figure[data-size="98"] {
+  width: 98%;
+}
+.editor figure[data-size="99"] {
+  width: 99%;
+}
+.editor figure[data-size="100"] {
+  width: 100%;
+}
+.editor figure[data-align=full] {
+  width: 100%;
+}
+.editor figure figcaption {
+  opacity: 0.75;
+  margin: 1em auto;
+  margin-top: 5px;
+}
+.editor.ProseMirror.read-only figure > * {
+  pointer-events: auto;
+}
+.editor.ProseMirror.read-only figure.ProseMirror-selectednode {
+  outline: none;
+}
+.editor .file-icon {
+  font-family: Arial, Tahoma, sans-serif;
+  font-weight: 300;
+  display: inline-block;
+  width: 24px;
+  height: 32px;
+  background: #018fef;
+  flex-shrink: 0;
+  position: relative;
+  border-radius: 2px;
+  text-align: left;
+  -webkit-font-smoothing: antialiased;
+}
+.editor .file-icon::before {
+  display: block;
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-bottom-left-radius: 2px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #fff #fff rgba(255, 255, 255, 0.35) rgba(255, 255, 255, 0.35);
+}
+.editor .file-icon::after {
+  display: block;
+  content: attr(data-type);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  font-size: 10px;
+  color: #fff;
+  text-transform: lowercase;
+  width: 100%;
+  padding: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.editor .file-icon-xs {
+  width: 12px;
+  height: 16px;
+  border-radius: 2px;
+}
+.editor .file-icon-xs::before {
+  border-bottom-left-radius: 1px;
+  border-width: 3px;
+}
+.editor .file-icon-xs::after {
+  content: "";
+  border-bottom: 2px solid rgba(255, 255, 255, 0.45);
+  width: auto;
+  left: 2px;
+  right: 2px;
+  bottom: 3px;
+}
+.editor .file-icon-sm {
+  width: 18px;
+  height: 24px;
+  border-radius: 2px;
+}
+.editor .file-icon-sm::before {
+  border-bottom-left-radius: 2px;
+  border-width: 4px;
+}
+.editor .file-icon-sm::after {
+  font-size: 7px;
+  padding: 2px;
+}
+.editor .file-icon-lg {
+  width: 48px;
+  height: 64px;
+  border-radius: 3px;
+}
+.editor .file-icon-lg::before {
+  border-bottom-left-radius: 2px;
+  border-width: 8px;
+}
+.editor .file-icon-lg::after {
+  font-size: 16px;
+  padding: 4px 6px;
+}
+.editor .file-icon-xl {
+  width: 96px;
+  height: 128px;
+  border-radius: 4px;
+}
+.editor .file-icon-xl::before {
+  border-bottom-left-radius: 4px;
+  border-width: 16px;
+}
+.editor .file-icon-xl::after {
+  font-size: 24px;
+  padding: 4px 10px;
+}
+.editor .file-icon[data-type=zip],
+.editor .file-icon[data-type=rar] {
+  background: #acacac;
+}
+.editor .file-icon[data-type^=doc] {
+  background: #307cf1;
+}
+.editor .file-icon[data-type^=xls] {
+  background: #0f9d58;
+}
+.editor .file-icon[data-type^=ppt] {
+  background: #d24726;
+}
+.editor .file-icon[data-type=pdf] {
+  background: #e13d34;
+}
+.editor .file-icon[data-type=txt] {
+  background: #5eb533;
+}
+.editor .file-icon[data-type=mp3],
+.editor .file-icon[data-type=wma],
+.editor .file-icon[data-type=m4a],
+.editor .file-icon[data-type=flac] {
+  background: #8e44ad;
+}
+.editor .file-icon[data-type=mp4],
+.editor .file-icon[data-type=wmv],
+.editor .file-icon[data-type=mov],
+.editor .file-icon[data-type=avi],
+.editor .file-icon[data-type=mkv] {
+  background: #7a3ce7;
+}
+.editor .file-icon[data-type=bmp],
+.editor .file-icon[data-type=jpg],
+.editor .file-icon[data-type=jpeg],
+.editor .file-icon[data-type=gif],
+.editor .file-icon[data-type=png] {
+  background: #f48c00;
+}
+.editor [data-node-type=file] {
+  width: 65%;
+}
+.editor [data-node-type=file] .details {
+  display: flex;
+  align-items: center;
+  text-align: left;
+}
+.editor [data-node-type=file] .details .extension {
+  text-transform: uppercase;
+  font-family: "Courier", monospace;
+  font-weight: 600;
+  font-size: 1.5em;
+}
+.editor [data-node-type=file] .details .file-name {
+  flex-grow: 1;
+  flex-shrink: 1;
+  margin: 0em 1em;
+  word-wrap: break-word;
+}
+.editor [data-node-type=file] .details .file-name a {
+  color: inherit;
+}
+.editor [data-node-type=file] .details .file-name a:hover {
+  cursor: pointer;
+  text-decoration: underline !important;
+}
+.editor [data-node-type=file] .details .file-size {
+  margin: 0em 1em;
+}
+.editor .tableWrapper {
+  margin: 1em 0;
+}
+@media screen and (max-width: 750px) {
+  .editor .tableWrapper {
+    overflow-x: scroll;
+  }
+}
+.editor .tableWrapper table {
+  margin: 0em;
+}
+@media screen and (max-width: 750px) {
+  .editor .tableWrapper table {
+    font-size: 0.8em;
+    width: auto;
+    max-width: fit-content;
+    table-layout: auto;
+  }
+}
+.editor .tableWrapper[data-smaller-font=true] table {
+  font-size: 0.8em;
+}
+.editor th {
+  font-weight: bold;
+  text-align: left;
+  background-color: #f0f0f4;
+}
+.editor th,
+.editor td,
+.editor table caption {
+  min-width: 1em;
+  border: 1px solid #ddd;
+  padding: 3px 5px;
+  /* Two :last-of-type as a selector specificity hack */
+  /* :last-child does not work here because the table plugin inserts nodes when resizing */
+}
+.editor th > p:last-of-type:last-of-type,
+.editor td > p:last-of-type:last-of-type,
+.editor table caption > p:last-of-type:last-of-type {
+  margin-bottom: 0;
+}
+@media screen and (max-width: 750px) {
+  .editor th,
+  .editor td {
+    min-width: 140px;
+    width: auto;
+  }
+}
+.editor table {
+  margin: 1em 0;
+  max-width: 100%;
+}
+.editor table caption {
+  text-align: left;
+  border-bottom: none;
+  padding: 3px 5px;
+}
+.editor > [data-text-align=center] {
+  text-align: center;
+}
+.editor > [data-text-align=right] {
+  text-align: right;
+}
+.editor td > [data-text-align=center],
+.editor th > [data-text-align=center] {
+  text-align: center;
+}
+.editor td > [data-text-align=right],
+.editor th > [data-text-align=right] {
+  text-align: right;
+}
+.editor > blockquote > [data-text-align=center] {
+  text-align: center;
+}
+.editor > blockquote > [data-text-align=right] {
+  text-align: right;
+}
+.editor [data-rtl=true] {
+  direction: rtl;
+}
+
+/* Import some global variables and styles, including fonts */
+/* The fraction of the screen used for the pub margin -- converted to CSS units below */
+/* Below this width, comments will be forced to a minimized view */
+/* The pub won't grow beyond this width */
+/* The space available for comments */
+/* The space available for comments on smaller screens */
+/* The maximum width of all the content */
+/* Full width of the gutter */
+/* The pub won't shrink beyond this width */
+/* Compact width of the gutter */
+/* The margin between the edge of the pub and the viewport (applied to the left and right side) */
+/* Used to determine when `minmax($pub-margin, auto) = $pub-margin`, which indicates that we should
+   treat the .breakout calculation differently.
+   Calculated as: 2 * $pub-margin-fraction * x + $compact-cutoff-width = x */
+.pub-body-component .editor.ProseMirror h1#abstract:first-child,
+.pub-body-styles h1#abstract:first-child {
+  color: var(--community-accent-dark);
+  text-transform: uppercase;
+  font-size: 1em;
+  font-weight: 500;
+  padding-top: 1em;
+}
+.pub-body-component .editor.ProseMirror h1#abstract:first-child + p,
+.pub-body-styles h1#abstract:first-child + p {
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 1em;
+}
+.pub-body-component .editor.ProseMirror h1,
+.pub-body-component .editor.ProseMirror h2,
+.pub-body-component .editor.ProseMirror h3,
+.pub-body-component .editor.ProseMirror h4,
+.pub-body-component .editor.ProseMirror h5,
+.pub-body-component .editor.ProseMirror h6,
+.pub-body-styles h1,
+.pub-body-styles h2,
+.pub-body-styles h3,
+.pub-body-styles h4,
+.pub-body-styles h5,
+.pub-body-styles h6 {
+  margin-bottom: 0.5em;
+  line-height: 1em;
+  font-weight: 500;
+  font-family: multi-display, -apple-system, "BlinkMacSystemFont", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Open Sans", "Helvetica Neue", sans-serif, source-han-sans-cjk-tc, source-han-sans-cjk-ko, source-han-sans-cjk-ja, source-han-sans-cjk-sc;
+  letter-spacing: 1px;
+}
+@media only screen and (max-width: 750px) {
+  .pub-body-component .editor.ProseMirror h1,
+  .pub-body-component .editor.ProseMirror h2,
+  .pub-body-component .editor.ProseMirror h3,
+  .pub-body-component .editor.ProseMirror h4,
+  .pub-body-component .editor.ProseMirror h5,
+  .pub-body-component .editor.ProseMirror h6,
+  .pub-body-styles h1,
+  .pub-body-styles h2,
+  .pub-body-styles h3,
+  .pub-body-styles h4,
+  .pub-body-styles h5,
+  .pub-body-styles h6 {
+    overflow-y: hidden;
+    overflow-x: auto;
+  }
+}
+.pub-body-component .editor.ProseMirror h1 a,
+.pub-body-component .editor.ProseMirror h2 a,
+.pub-body-component .editor.ProseMirror h3 a,
+.pub-body-component .editor.ProseMirror h4 a,
+.pub-body-component .editor.ProseMirror h5 a,
+.pub-body-component .editor.ProseMirror h6 a,
+.pub-body-styles h1 a,
+.pub-body-styles h2 a,
+.pub-body-styles h3 a,
+.pub-body-styles h4 a,
+.pub-body-styles h5 a,
+.pub-body-styles h6 a {
+  text-decoration: underline;
+}
+.pub-body-component .editor.ProseMirror h1,
+.pub-body-styles h1 {
+  font-size: 1.4em;
+  font-weight: 600;
+  line-height: 1.3em;
+  letter-spacing: 0px;
+}
+.pub-body-component .editor.ProseMirror h2,
+.pub-body-styles h2 {
+  font-size: 1.3em;
+  line-height: 1.3em;
+  font-weight: 500;
+  letter-spacing: 0px;
+}
+.pub-body-component .editor.ProseMirror h3,
+.pub-body-styles h3 {
+  font-size: 1.2em;
+  line-height: 1.3em;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+}
+.pub-body-component .editor.ProseMirror h4,
+.pub-body-styles h4 {
+  font-size: 1em;
+  line-height: 1.3em;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+.pub-body-component .editor.ProseMirror h5,
+.pub-body-styles h5 {
+  font-size: 1em;
+  line-height: 1.3em;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+}
+.pub-body-component .editor.ProseMirror h6,
+.pub-body-styles h6 {
+  font-size: 1em;
+  line-height: 1.3em;
+  font-weight: 300;
+  letter-spacing: 0.5px;
+}
+.pub-body-component .editor.ProseMirror * + h1,
+.pub-body-component .editor.ProseMirror * + h2,
+.pub-body-component .editor.ProseMirror * + h3,
+.pub-body-component .editor.ProseMirror * + h4,
+.pub-body-component .editor.ProseMirror * + h5,
+.pub-body-component .editor.ProseMirror * + h6,
+.pub-body-styles * + h1,
+.pub-body-styles * + h2,
+.pub-body-styles * + h3,
+.pub-body-styles * + h4,
+.pub-body-styles * + h5,
+.pub-body-styles * + h6 {
+  margin-top: 1.4em;
+}
+.pub-body-component .editor.ProseMirror p,
+.pub-body-component .editor.ProseMirror li,
+.pub-body-styles p,
+.pub-body-styles li {
+  font-family: Georgia, Cambria, "Times New Roman", Times, "DejaVu Serif", source-han-serif-tc, source-han-serif-korean, source-han-serif-japanese, source-han-serif-sc, serif;
+  letter-spacing: 0.01rem;
+  font-weight: 400;
+  font-style: normal;
+  line-height: 1.7;
+  letter-spacing: -0.003em;
+  word-break: break-word;
+}
+.pub-body-component .editor.ProseMirror li,
+.pub-body-styles li {
+  margin: 0;
+}
+.pub-body-component .editor.ProseMirror li > p,
+.pub-body-styles li > p {
+  margin: 0;
+}
+.pub-body-component .editor.ProseMirror p,
+.pub-body-styles p {
+  margin: 0em 0em 1em;
+}
+@media only screen and (max-width: 750px) {
+  .pub-body-component .editor.ProseMirror p,
+  .pub-body-styles p {
+    overflow-y: hidden;
+    overflow-x: auto;
+  }
+}
+.pub-body-component .editor.ProseMirror ul > li::marker,
+.pub-body-styles ul > li::marker {
+  font-size: 0.8em;
+}
+.pub-body-component .editor.ProseMirror ul,
+.pub-body-component .editor.ProseMirror ol,
+.pub-body-styles ul,
+.pub-body-styles ol {
+  padding-left: 1em;
+  margin: 0em 0em 1em;
+}
+.pub-body-component .editor.ProseMirror ul ul,
+.pub-body-component .editor.ProseMirror ul ol,
+.pub-body-component .editor.ProseMirror ol ul,
+.pub-body-component .editor.ProseMirror ol ol,
+.pub-body-styles ul ul,
+.pub-body-styles ul ol,
+.pub-body-styles ol ul,
+.pub-body-styles ol ol {
+  margin-bottom: 0em;
+}
+.pub-body-component .editor.ProseMirror td ol,
+.pub-body-styles td ol {
+  padding-left: 0;
+  list-style-position: inside;
+}
+.pub-body-component .editor.ProseMirror td ol li p,
+.pub-body-styles td ol li p {
+  word-break: break-word;
+}
+.pub-body-component .editor.ProseMirror td ol li p:first-child,
+.pub-body-styles td ol li p:first-child {
+  display: inline;
+}
+.pub-body-component .editor.ProseMirror hr,
+.pub-body-styles hr {
+  margin: 1em 0em;
+}
+.pub-body-component .editor.ProseMirror pre,
+.pub-body-styles pre {
+  box-shadow: none;
+  white-space: pre;
+  overflow: hidden;
+  overflow-x: auto;
+}
+.pub-body-component .editor.ProseMirror pre code,
+.pub-body-styles pre code {
+  display: block;
+  white-space: pre;
+  background-color: transparent;
+  padding: 0em;
+}
+.pub-body-component .editor.ProseMirror pre.codeblock-wrapper,
+.pub-body-styles pre.codeblock-wrapper {
+  margin-bottom: 0;
+  padding-bottom: 30px;
+}
+.pub-body-component .editor.ProseMirror code,
+.pub-body-styles code {
+  background-color: rgba(27, 31, 35, 0.06);
+  border-radius: 2px;
+  font-size: 0.8em;
+  margin: 0;
+  padding: 0.2em 0.4em;
+}
+.pub-body-component .editor.ProseMirror blockquote,
+.pub-body-styles blockquote {
+  line-height: inherit;
+  font-size: 1em;
+  margin: 0 0 1em;
+  border-left: solid 4px rgba(181, 181, 181, 0.5);
+  padding: 0 1em;
+}
+.pub-body-component .editor.ProseMirror .file,
+.pub-body-styles .file {
+  font-size: 0.75em;
+}
+.pub-body-component .editor.ProseMirror figcaption,
+.pub-body-styles figcaption {
+  font-size: 15px;
+}
+.pub-body-component .editor.ProseMirror figcaption p,
+.pub-body-styles figcaption p {
+  margin-bottom: 0em;
+  line-height: 1.2em;
+  font-family: -apple-system, "BlinkMacSystemFont", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Open Sans", "Helvetica Neue", sans-serif;
+}
+.pub-body-component .editor.ProseMirror iframe,
+.pub-body-styles iframe {
+  border: 0px solid transparent;
+}
+.pub-body-component .editor.ProseMirror *:first-child:not(.discussion-thread),
+.pub-body-styles *:first-child:not(.discussion-thread) {
+  margin-top: 0em;
+}
+
+.pub-body-component {
+  position: relative;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -moz-font-feature-settings: "liga" on;
+  font-feature-settings: "liga" on;
+  font-size: 14px;
+  min-height: 300px;
+  margin-top: 25px;
+}
+.pub-body-component .editor.ProseMirror {
+  min-height: 150px;
+}
+.pub-body-component .bp3-callout.working-draft {
+  display: flex;
+  align-items: center;
+}
+.pub-body-component .bp3-callout.working-draft span {
+  flex-grow: 1;
+  flex-shrink: 1;
+}
+.pub-body-component .permanent {
+  background-color: #ffc940;
+}
+
+.pub-body-alert .error-time {
+  font-weight: bold;
+}
+
+body {
+  font-family: -apple-system, "BlinkMacSystemFont", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Open Sans", "Helvetica Neue", sans-serif;
+}
+
+/* Paged-specific overrides */
+.csl-bib-body,
+.csl-entry {
+  display: inline;
+}
+
+.pub-body-component .editor.ProseMirror .pub-notes ol > li {
+  list-style-position: inside;
+  margin: inherit;
+}
+.pub-body-component .editor.ProseMirror .pub-notes ol > li:target {
+  background: cornsilk;
+}
+.pub-body-component .editor.ProseMirror .pub-notes ol > li p:last-child {
+  display: inline;
+}
+.pub-body-component .editor.ProseMirror .pub-notes ol > li p:last-child:before {
+  display: inline;
+  content: " ";
+}
+.pub-body-component .editor.ProseMirror .pub-notes ol > li .return-link {
+  font-size: 0.75em;
+}
+.pub-body-component .editor.ProseMirror figure > * {
+  pointer-events: auto;
+}
+
+section.cover {
+  font-family: multi-display, -apple-system, "BlinkMacSystemFont", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Open Sans", "Helvetica Neue", sans-serif, source-han-sans-cjk-tc, source-han-sans-cjk-ko, source-han-sans-cjk-ja, source-han-sans-cjk-sc;
+}
+section.cover .title {
+  margin-top: 0;
+  font-size: 3em;
+}
+section.cover .byline h3 {
+  margin: 0;
+}
+section.cover .byline h3 span.name {
+  white-space: nowrap;
+  display: inline-block;
+  margin-right: 0.2em;
+}
+section.cover .byline h5 {
+  margin: 0;
+  margin-top: 0.5em;
+}
+section.cover .byline h5 span.affiliation {
+  white-space: break-word;
+  display: inline-block;
+  margin-right: 0.2em;
+}
+section.cover .details > *:not(:last-child) {
+  margin-bottom: 7px;
+}
+section.cover .title,
+section.cover .byline,
+section.cover .details {
+  margin-bottom: 30px !important;
+}
+
+@media screen {
+  body > * {
+    max-width: 700px;
+    margin: 0 auto;
+  }
+  body > *.pub-body-component {
+    font-size: 20px !important;
+  }
+}
+@media print {
+  /* Baseline page styles */
+  @page {
+    size: Letter;
+    @top-left {
+      color: #666;
+      font-size: 10px;
+      font-family: multi-display, -apple-system, "BlinkMacSystemFont", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Open Sans", "Helvetica Neue", sans-serif, source-han-sans-cjk-tc, source-han-sans-cjk-ko, source-han-sans-cjk-ja, source-han-sans-cjk-sc;
+      content: string(top-heading-items);
+      vertical-align: top;
+      padding-top: 1cm;
+    }
+    @top-right {
+      color: #666;
+      font-size: 10px;
+      font-family: multi-display, -apple-system, "BlinkMacSystemFont", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Open Sans", "Helvetica Neue", sans-serif, source-han-sans-cjk-tc, source-han-sans-cjk-ko, source-han-sans-cjk-ja, source-han-sans-cjk-sc;
+      content: string(title);
+      vertical-align: top;
+      padding-top: 1cm;
+    }
+    @top-center {
+      content: "";
+      width: 1cm;
+    }
+    @bottom-center {
+      color: #666;
+      font-size: 10px;
+      font-family: multi-display, -apple-system, "BlinkMacSystemFont", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Open Sans", "Helvetica Neue", sans-serif, source-han-sans-cjk-tc, source-han-sans-cjk-ko, source-han-sans-cjk-ja, source-han-sans-cjk-sc;
+      content: counter(page);
+    }
+  }
+  /* Avoid being the last element on the page */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    break-after: avoid;
+  }
+  tr,
+  th {
+    break-inside: avoid;
+    max-height: 90vh;
+    overflow-y: hidden;
+  }
+  .editor figure {
+    break-inside: avoid;
+    display: flex;
+    flex-direction: column;
+    max-height: 800px;
+  }
+  .editor figure img,
+  .editor figure video {
+    break-inside: avoid;
+    width: 100%;
+    min-height: 0;
+    max-height: 100%;
+    flex-shrink: 1;
+    object-fit: contain;
+  }
+  figcaption {
+    font-size: 10px;
+    color: #555;
+    flex-shrink: 0;
+  }
+  table {
+    font-size: 12px;
+    border-collapse: collapse;
+    table-layout: fixed;
+    width: 100%;
+    overflow: hidden;
+  }
+  table caption {
+    text-align: left;
+  }
+  table,
+  tr,
+  th,
+  td {
+    border: 1px #ccc solid;
+    padding: 5px;
+  }
+  th {
+    font-weight: bold;
+    text-align: left;
+    background-color: #f0f0f4;
+  }
+  td,
+  a {
+    word-break: break-word;
+  }
+  a.footnote {
+    vertical-align: super;
+    font-size: 10px;
+  }
+  [data-node-type=math-block] {
+    font-size: unset;
+    break-inside: avoid;
+  }
+  section.cover {
+    page: cover;
+  }
+  @page cover {
+    @top-left {
+      content: "";
+    }
+    @top-right {
+      content: "";
+    }
+    @bottom-center {
+      content: "";
+    }
+  }
+  .top-heading-items {
+    string-set: top-heading-items content();
+  }
+  .title {
+    string-set: title content();
+  }
+}</style><script>
+(function(d) {
+  var config = {
+	kitId: 'seb8nix',
+	scriptTimeout: 3000,
+	async: true
+  },
+  h=d.documentElement,t=setTimeout(function(){h.className=h.className.replace(/wf-loading/g,"")+" wf-inactive";},config.scriptTimeout),tk=d.createElement("script"),f=false,s=d.getElementsByTagName("script")[0],a;h.className+=" wf-loading";tk.src='https://use.typekit.net/'+config.kitId+'.js';tk.async=true;tk.onload=tk.onreadystatechange=function(){a=this.readyState;if(f||a&&a!="complete"&&a!="loaded")return;f=true;clearTimeout(t);try{Typekit.load(config)}catch(e){}};s.parentNode.insertBefore(tk,s)
+})(document);
+</script></head><body><section class="cover"><h3 class="top-heading-items">The Connected Corpus • Plato&#x27;s Republic</h3><h1 class="title" style="color:#2D2E2F">Plato&#x27;s Republic Book IV, translated by Paul Shorey</h1><div class="byline"><h3><span class="name">Connected Corpus</span></h3></div><div class="details"><div><strong>Published on: </strong> Aug 30, 2024</div><div><strong>URL: </strong><a href="https://theconnectedcorpus.pubpub.org/pub/160jl2xh">https://theconnectedcorpus.pubpub.org/pub/160jl2xh</a></div><div><strong>License:</strong> <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/">Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License (CC-BY-NC-ND 4.0)</a></div></div></section><div class="pub-body-component"><div class="editor Prosemirror"><p id="nm42at7vzyd"><em>To see the connections, scroll down and click on the comment bubbles in the right-hand margin.  To connect to other texts, click on the links in the comments.  A list of all annotations is at the bottom of the page.  You can also filter connections by who they are connections to, e.g. Aristotle, Stoics, Epicurus, Pyrrhonian Skeptics, etc.</em></p><p id="nu81k9wm816">[419a]</p><p id="nlz5pq8abib"><strong>Socrates</strong></p><p id="nii4yvt5wmy">And Adeimantus broke in and said, “What will be your defence, Socrates, if anyone objects that you are not making these men very happy, and that through their own fault? For the city really belongs to them and yet they get no enjoyment out of it as ordinary men do by owning lands and building fine big houses and providing them with suitable furniture and winning the favor of the gods by private sacrifices and entertaining guests and enjoying too those possessions which you just now spoke of, gold and silver and all that is customary for those who are expecting to be happy? But they seem, one might say, to be established in idleness in the city, [420a] exactly like hired mercenaries, with nothing to do but keep guard.” “Yes,” said I, “and what is more, they serve for board-wages and do not even receive pay in addition to their food as others do, so that they will not even be able to take a journey<sup> </sup>on their own account, if they wish to, or make presents to their mistresses, or spend money in other directions according to their desires like the men who are thought to be happy. These and many similar counts of the indictment you are omitting.” “Well,” said he, “assume these counts too.” [420b] “What then will be our apology you ask?” “Yes.” “By following the same path I think we shall find what to reply. For we shall say that while it would not surprise us if these men thus living prove to be the most happy, yet the object on which we fixed our eyes in the establishment of our state was not the exceptional happiness of any one class but the greatest possible happiness of the city as a whole. For we thought that in a state so constituted we should be most likely to discover justice as we should injustice [420c] in the worst governed state, and that when we had made these out we could pass judgement on the issue of our long inquiry. Our first task then, we take it, is to mold the model of a happy state—we are not isolating a small class in it and postulating their happiness, but that of the city as a whole. But the opposite type of state we will consider presently. It is as if we were coloring a statue and someone approached and censured us, saying that we did not apply the most beautiful pigments to the most beautiful parts of the image, since the eyes, which are the most beautiful part, have not been painted with purple but with black— [420d] we should think it a reasonable justification to reply, ‘Don&#x27;t expect us, quaint friend, to paint the eyes so fine that they will not be like eyes at all, nor the other parts. But observe whether by assigning what is proper to each we render the whole beautiful.’ And so in the present case you must not require us to attach to the guardians a happiness that will make them anything but guardians. [420e] For in like manner we could clothe the farmers in robes of state and deck them with gold and bid them cultivate the soil at their pleasure, and we could make the potters recline on couches from left to right before the fire drinking toasts and feasting with their wheel alongside to potter with when they are so disposed, and we can make all the others happy in the same fashion, so that thus the entire city may be happy. But urge us not to this, [421a] since, if we yield, the farmer will not be a farmer nor the potter a potter, nor will any other of the types that constitute state keep its form. However, for the others it matters less. For cobblers who deteriorate and are spoiled and pretend to be the workmen that they are not are no great danger to a state. But guardians of laws and of the city who are not what they pretend to be, but only seem, destroy utterly, I would have you note, the entire state, and on the other hand, they alone are decisive of its good government and happiness. If then we are forming true guardians [421b] and keepers of our liberties, men least likely to harm the commonwealth, but the proponent of the other ideal is thinking of farmers and &#x27;happy&#x27; feasters as it were in a festival and not in a civic community, he would have something else in mind than a state. Consider, then, whether our aim in establishing the guardians is the greatest possible happiness among them or whether that is something we must look to see develop in the city as a whole, but these helpers and guardians [421c] are to be constrained and persuaded to do what will make them the best craftsmen in their own work, and similarly all the rest. And so, as the entire city develops and is ordered well, each class is to be left, to the share of happiness that its nature comports.</p><p id="ns16hdzf0o3">“Well,” he said, “I think you are right.” “And will you then,” I said, “also think me reasonable in another point akin to this?” “What pray?” “Consider whether [421d] these are the causes that corrupt other craftsmen too so as positively to spoil them.” “What causes?” “Wealth and poverty,” said I. “How so?” “Thus! do you think a potter who grew rich would any longer be willing to give his mind to his craft?” “By no means,” said he. “But will he become more idle and negligent than he was?” “Far more.” “Then he becomes a worse potter?” “Far worse too.” “And yet again, if from poverty he is unable to provide himself with tools and other requirements of his art, [421e] the work that he turns out will be worse, and he will also make inferior workmen of his sons or any others whom he teaches.” “Of course.” “From both causes, then, poverty and wealth, the products of the arts deteriorate, and so do the artisans?” “So it appears.” “Here, then, is a second group of things it seems that our guardians must guard against and do all in their power to keep from slipping into the city without their knowledge.” “What are they?” [422a] “Wealth and poverty,” said I, “since the one brings luxury, idleness and innovation, and the other illiberality and the evil of bad workmanship in addition to innovation.” “Assuredly,” he said; “yet here is a point for your consideration, Socrates, how our city, possessing no wealth, will be able to wage war, especially if compelled to fight a large and wealthy state.” “Obviously,” said I, “it would be rather difficult to fight one such, [422b] but easier to fight two.” “What did you mean by that?” he said. “Tell me first,” I said, “whether, if they have to fight, they will not be fighting as athletes of war against men of wealth?” “Yes, that is true,” he said. “Answer me then, Adeimantus. Do you not think that one boxer perfectly trained in the art could easily fight two fat rich men who knew nothing of it?” “Not at the same time perhaps,” said he. “Not even,” said I, “if he were allowed to retreat [422c] and then turn and strike the one who came up first, and if he repeated the procedure many times under a burning and stifling sun? Would not such a fighter down even a number of such opponents?” “Doubtless,” he said; “it wouldn&#x27;t be surprising if he did.” “Well, don&#x27;t you think that the rich have more of the skill and practice of boxing than of the art of war?” “I do,” he said. “It will be easy, then, for our athletes in all probability to fight with double and triple their number.” “I shall have to concede the point,” [422d] he said, “for I believe you are right.” “Well then, if they send an embassy to the other city and say what is in fact true: ‘We make no use of gold and silver nor is it lawful for us but it is for you: do you then join us in the war and keep the spoils of the enemy,’—do you suppose any who heard such a proposal would choose to fight against hard and wiry hounds rather than with the aid of the hounds against fat and tender sheep?” “I think not.” “Yet consider whether the accumulation [422e] of all the wealth of other cities in one does not involve danger for the state that has no wealth.” “What happy innocence,” said I, “to suppose that you can properly use the name city of any other than the one we are constructing.” “Why, what should we say?” he said. “A greater predication,” said I, “must be applied to the others. For they are each one of them many cities, not a city, as it goes in the game. There are two at the least at enmity with one another, the city of the rich [423a] and the city of the poor, and in each of these there are many. If you deal with them as one you will altogether miss the mark, but if you treat them as a multiplicity by offering to the one faction the property, the power, the very persons of the other, you will continue always to have few enemies and many allies. And so long as your city is governed soberly in the order just laid down, it will be the greatest of cities. I do not mean greatest in repute, but in reality, even though it have only a thousand defenders. For a city of this size [423b] that is really one<sup> </sup>you will not easily discover either among Greeks or barbarians—but of those that seem so you will find many and many times the size of this. Or do you think otherwise?” “No, indeed I don&#x27;t,” said he.</p><p id="n6ffj6lngvn">“Would not this, then, be the best rule and measure for our governors of the proper size of the city and of the territory that they should mark off for a city of that size and seek no more?” “What is the measure?” “I think,” said I, “that they should let it grow so long as in its growth it consents to remain a unity, [423c] but no further.” “Excellent,” he said. “Then is not this still another injunction that we should lay upon our guardians, to keep guard in every way that the city shall not be too small, nor great only in seeming, but that it shall be a sufficient city and one?” “That behest will perhaps be an easy one for them,” he said. “And still easier, haply,” I said, “is this that we mentioned before<sup> </sup>when we said that if a degenerate offspring was born to the guardians he must be sent away to the other classes, [423d] and likewise if a superior to the others he must be enrolled among the guardians; and the purport of all this was that the other citizens too must be sent to the task for which their natures were fitted, one man to one work, in order that each of them fulfilling his own function may be not many men, but one, and so the entire city may come to be not a multiplicity but a unity.” “Why yes,” he said, “this is even more trifling than that.” “These are not, my good Adeimantus, as one might suppose, numerous and difficult injunctions that [423e] we are imposing upon them, but they are all easy, provided they guard, as the saying is, the one great thing—or instead of great let us call it sufficient.” “What is that?” he said. “Their education and nurture,” I replied. “For if a right education makes of them reasonable men they will easily discover everything of this kind—and other principles that we now pass over, as that the possession of wives and marriage, [424a] and the procreation of children and all that sort of thing should be made as far as possible the proverbial goods of friends that are common.” “Yes, that would be the best way,” he said. “And, moreover,” said I, “the state, if it once starts well, proceeds as it were in a cycle of growth. I mean that a sound nurture and education if kept up creates good natures in the state, and sound natures in turn receiving an education of this sort develop into better men than their predecessors [424b] both for other purposes and for the production of offspring as among animals also.” “It is probable,” he said. “To put it briefly, then,” said I, “it is to this that the overseers of our state must cleave and be watchful against its insensible corruption. They must throughout be watchful against innovations in music and gymnastics counter to the established order, and to the best of their power guard against them, fearing when anyone says that“ That song is most regarded among men<br/>Which hovers newest on the singer&#x27;s lips,<br/>”<a href="http://www.perseus.tufts.edu/hopper/text?doc=Hom.%20Od.%201.351&amp;lang=original" target="_new"><strong>Hom. Od. 1.351</strong></a> [424c] lest haply it be supposed that the poet means not new songs but a new way of song and is commending this. But we must not praise that sort of thing nor conceive it to be the poet&#x27;s meaning. For a change to a new type of music is something to beware of as a hazard of all our fortunes. For the modes of music are never disturbed without unsettling of the most fundamental political and social conventions, as <a href="http://www.perseus.tufts.edu/hopper/entityvote?doc=Perseus:text:1999.01.0168:book=4:page=424&amp;auth=tgn,2274807&amp;n=1&amp;type=place" target="_blank">Damon</a> affirms and as I am convinced.” “Set me too down in the number of the convinced,” said Adeimantus. [424d]</p><p id="ny8uf1w36bo">“It is here, then,” I said, “in music, as it seems, that our guardians must build their guard-house and post of watch.” “It is certain,” he said, “that this is the kind of lawlessness that easily insinuates itself unobserved.” “Yes,” said I, “because it is supposed to be only a form of play and to work no harm.” “Nor does it work any,” he said, “except that by gradual infiltration it softly overflows upon the characters and pursuits of men and from these issues forth grown greater to attack their business dealings, and from these relations [424e] it proceeds against the laws and the constitution with wanton licence, Socrates, till finally it overthrows all things public and private.” “Well,” sxaid I, “are these things so?” “I think so,” he said. “Then, as we were saying in the beginning, our youth must join in a more law-abiding play, since, if play grows lawless and the children likewise, [425a] it is impossible that they should grow up to be men of serious temper and lawful spirit.” “Of course,” he said. “And so we may reason that when children in their earliest play are imbued with the spirit of law and order through their music, the opposite of the former supposition happens—this spirit waits upon them in all things and fosters their growth, and restores and sets up again whatever was overthrown in the other type of state.” “True, indeed,” he said. “Then such men rediscover for themselves those seemingly trifling conventions which their predecessors abolished altogether.” “Of what sort?” “Such things as [425b] the becoming silence of the young in the presence of their elders; the giving place to them and rising up before them, and dutiful service of parents, and the cut of the hair and the garments and the fashion of the foot-gear, and in general the deportment of the body and everything of the kind. Don&#x27;t you think so?” “I do.” “Yet to enact them into laws would, I think, be silly. For such laws are not obeyed nor would they last, being enacted only in words and on paper.” “How could they?” “At any rate, Adeimantus,” I said, “the direction of the education from whence one starts is likely to determine [425c] the quality of what follows. Does not like ever summon like?” “Surely.” “And the final outcome, I presume, we would say is one complete and vigorous product of good or the reverse.” “Of course,” said he. “For my part, then,” I said, “for these reasons I would not go on to try to legislate on such matters.” “With good reason,” said he. “But what, in heaven&#x27;s name,” said I, “about business matters, the deals that men make with one another in the agora— [425d] and, if you please, contracts with workmen and actions for foul language and assault, the filing of declarations, the impanelling of juries, the payment and exaction of any dues that may be needful in markets or harbors and in general market, police or harbor regulations and the like, can we bring ourselves to legislate about these?” “Nay, ‘twould not be fitting,” he said, “to dictate to good and honorable men. For most of the enactments that are needed about these things [425e] they will easily, I presume, discover.” “Yes, my friend, provided God grants them the preservation of the principles of law that we have already discussed.” “Failing that,” said he, “they will pass their lives multiplying such petty laws and amending them in the expectation of attaining what is best.” “You mean,” said I, “that the life of such citizens will resemble that of men who are sick, yet from intemperance are unwilling to abandon their unwholesome regimen.” </p><p id="n8ydn2fxj29">[426a] “By all means.” And truly,” said I, “these latter go on in a most charming<sup> </sup>fashion. For with all their doctoring they accomplish nothing except to complicate and augment their maladies. And they are always hoping that some one will recommend a panacea that will restore their health.” “A perfect description,” he said, “of the state of such invalids.” “And isn&#x27;t this a charming trait in them, that they hate most in all the world him who tells them the truth that until a man stops drinking and gorging and wenching [426b] and idling, neither drugs nor cautery nor the knife, no, nor spells nor periapts will be of any avail?” “Not altogether charming,” he said, “for there is no grace or charm in being angry with him who speaks well.” “You do not seem to be an admirer of such people,” said I. “No, by heaven, I am not.”</p><p id="n3wnb0v7uze">“Neither then, if an entire city,<sup> </sup>as we were just now saying, acts in this way, will it have your approval, or don&#x27;t you think that the way of such invalids is precisely that of those cities [426c] which being badly governed forewarn their citizens not to meddle with the general constitution of the state, denouncing death to whosoever attempts that—while whoever most agreeably serves them governed as they are and who curries favor with them by fawning upon them and anticipating their desires and by his cleverness in gratifying them, him they will account the good man, the man wise in worthwhile things, the man they will delight to honor?” “Yes,” he said, “I think their conduct is identical, and I don&#x27;t approve it in the very least.” [426d] “And what again of those who are willing and eager to serve such states? Don&#x27;t you admire their valiance and light-hearted irresponsibility?” “I do,” he said, “except those who are actually deluded and suppose themselves to be in truth statesmen because they are praised by the many.” “What do you mean? “Can&#x27;t you make allowances for the men? Do you think it possible for a man who does not know how to measure when a multitude of others equally ignorant assure him that he is four cubits tall [426e] not to suppose this to be the fact about himself?” “Why no,” he said, “I don&#x27;t think that.” “Then don&#x27;t be harsh with them. For surely such fellows are the most charming spectacle in the world when they enact and amend such laws as we just now described and are perpetually expecting to find a way of putting an end to frauds in business and in the other matters of which I was speaking because they can&#x27;t see that they are in very truth trying to cut off a Hydra&#x27;s head.” [427a] “Indeed,” he said, “that is exactly what they are doing.” “I, then,” said I, “should not have supposed that the true lawgiver ought to work out matters of that kind in the laws and the constitution either of an ill-governed or a well-governed state—in the one because they are useless and accomplish nothing, in the other because some of them anybody could discover and others will result spontaneously from the pursuits already described.” [427b]</p><p id="n0ej07n2s5o">“What part of legislation, then,” he said, “is still left for us?” And I replied, “For us nothing, but for the Apollo of Delphi, the chief, the fairest and the first of enactments.” “What are they?” he said. “The founding of temples, and sacrifices, and other forms of worship of gods, daemons, and heroes; and likewise the burial of the dead and the services we must render to the dwellers in the world beyond to keep them gracious. For of such matters [427c] we neither know anything nor in the founding of our city if we are wise shall we entrust them to any other or make use of any other interpreter than the God of our fathers. For this God surely is in such matters for all mankind the interpreter of the religion of their fathers who from his seat in the middle and at the very navel of the earth delivers his interpretation.” “Excellently said,” he replied; “and that is what we must do.” [427d]</p><p id="nqjyqvl7xa7">“At last, then, son of Ariston,” said I, “your city may be considered as established. The next thing is to procure a sufficient light somewhere and to look yourself, and call in the aid of your brother and of Polemarchus and the rest, if we may in any wise discover where justice and injustice should be in it, wherein they differ from one another and which of the two he must have who is to be happy, alike whether his condition is known or not known to all gods and men.” “Nonsense,” said Glaucon, “you promised that you would carry on the search yourself, [427e] admitting that it would be impious for you not to come to the aid of justice by every means in your power.” “A true reminder,” I said, “and I must do so, but you also must lend a hand.” “Well,” he said, “we will.” “I expect then,” said I, “that we shall find it in this way. I think our city, if it has been rightly founded is good in the full sense of the word.” “Necessarily,” he said. “Clearly, then, it will be wise, brave, sober, and just.” “Clearly.” “Then if we find any of these qualities in it, the remainder will be that which we have not found?” [428a] “Surely.” “Take the case of any four other things. If we were looking for any one of them in anything and recognized the object of our search first, that would have been enough for us, but if we had recognized the other three first, that in itself would have made known to us the thing we were seeking. For plainly there was nothing left for it to be but the remainder.” “Right,” he said. “And so, since these are four, we must conduct the search in the same way.” “Clearly.” “And, moreover, [428b] the first thing that I think I clearly see therein is the wisdom, and there is something odd about that, it appears.” “What?” said he. “Wise in very deed I think the city that we have described is, for it is well counselled, is it not?” “Yes.” “And surely this very thing, good counsel, is a form of wisdom. For it is not by ignorance but by knowledge that men counsel well.” “Obviously.” “But there are many and manifold knowledges or sciences in the city.” “Of course.” “Is it then owing to the science of her carpenters that [428c] a city is to be called wise and well advised?” “By no means for that, but rather mistress of the arts of building.” “Then a city is not to be styled wise because of the deliberations of the science of wooden utensils for their best production?” “No, I grant you.” “Is it, then, because of that of brass implements or any other of that kind?” “None whatsoever,” he said. “Nor yet because of the science of the production of crops from the soil, but the name it takes from that is agricultural.” “I think so.” “Then,” said I, “is there any science in the city just founded by us residing in any of its citizens which does not take counsel about some particular thing [428d] in the city but about the city as a whole and the betterment of its relations with itself and other states?” “Why, there is.” “What is it,” said I, “and in whom is it found?” “It is the science of guardianship or government and it is to be found in those rulers to whom we just now gave the name of guardians in the full sense of the word.” “And what term then do you apply to the city because of this knowledge?” “Well advised,” he said, “and truly wise.” “Which class, then,” said I, [428e] “do you suppose will be the more numerous in our city, the smiths or these true guardians?” “The smiths, by far,” he said. “And would not these rulers be the smallest of all the groups of those who possess special knowledge and receive distinctive appellations?” “By far.” “Then it is by virtue of its smallest class and minutest part of itself, and the wisdom that resides therein, in the part which takes the lead and rules, that a city established on principles of nature would be wise as a whole. And as it appears [429a] these are by nature the fewest, the class to which it pertains to partake of the knowledge which alone of all forms of knowledge deserves the name of wisdom.” “Most true,” he said. “This one of our four, then, we have, I know not how, discovered, the thing itself and its place in the state.” “I certainly think,” said he, “that it has been discovered sufficiently.”</p><p id="nj184hlxige">“But again there is no difficulty in seeing bravery itself and the part of the city in which it resides for which the city is called brave.” “How so?” “Who,” said I, [429b] “in calling a city cowardly or brave would fix his eyes on any other part of it than that which defends it and wages war in its behalf?” “No one at all,” he said. “For the reason, I take it,” said I, “that the cowardice or the bravery of the other inhabitants does not determine for it the one quality or the other.” “It does not.” “Bravery too, then, belongs to a city by virtue of a part of itself owing to its possession in that part of a quality that under all conditions will preserve the conviction [429c] that things to be feared are precisely those which and such as the lawgiver inculcated in their education. Is not that what you call bravery?” “I don&#x27;t altogether understand what you said,” he replied; “but say it again.” “A kind of conservation,” I said, “is what I mean by bravery.” “What sort of a conservation?” “The conservation of the conviction which the law has created by education about fearful things—what and what sort of things are to be feared. And by the phrase ‘under all conditions’ I mean that the brave man preserves it both in pain [429d] and pleasures and in desires and fears and does not expel it from his soul. And I may illustrate it by a similitude if you please.” “I do.” “You are aware that dyers when they wish to dye wool so as to hold the purple hue begin by selecting from the many colors there be the one nature of the white and then give it a careful preparatory treatment so that it will take the hue in the best way, and after the treatment, then and then only, dip it in the dye. [429e] And things that are dyed by this process become fast-colored and washing either with or without lyes cannot take away the sheen of their hues. But otherwise you know what happens to them, whether anyone dips other colors or even these without the preparatory treatment.” “I know,” he said, “that they present a ridiculous and washed-out appearance.” “By this analogy, then,” said I, “you must conceive what we too to the best of our ability were doing when we selected our soldiers and educated them in music<sup> </sup>[430a] and exercises of the body. The sole aim of our contrivance was that they should be convinced and receive our laws like a dye as it were, so that their belief and faith might be fast-colored both about the things that are to be feared and all other things because of the fitness of their nature and nurture, and that so their dyes might not be washed out by those lyes that have such dread power to scour our faiths away, pleasure more potent than any detergent or abstergent [430b] to accomplish this, and pain and fear and desire more sure than any lye. This power in the soul, then, this unfailing conservation of right and lawful belief about things to be and not to be feared is what I call and would assume to be courage, unless you have something different to say.” “No, nothing,” said he; “for I presume that you consider mere right opinion about the same matters not produced by education, that which may manifest itself in a beast or a slave, to have little or nothing to do with law and that you would call it by another name than courage.” [430c] “That is most true,” said I. “Well then,” he said, “I accept this as bravery.” “Do so,” said I, “and you will be right with the reservation that it is the courage of a citizen. Some other time, if it please you, we will discuss it more fully. At present we were not seeking this but justice; and for the purpose of that inquiry I believe we have done enough.” “You are quite right,” he said. [430d]</p><p id="na6n7cva3tb">“Two things still remain,” said I, “to make out in our city, soberness and the object of the whole inquiry, justice.” “Quite so.” “If there were only some way to discover justice so that we need not further concern ourselves about soberness.” “Well, I, for my part,” he said, “neither know of any such way nor would I wish justice to be discovered first if that means that we are not to go on to the consideration of soberness. But if you desire to please me, consider this before that.” “It would certainly [430e] be very wrong of me not to desire it,” said I. “Go on with the inquiry then,” he said. “I must go on,” I replied, “and viewed from here it bears more likeness to a kind of concord and harmony than the other virtues did.” “How so?” “Soberness is a kind of beautiful order and a continence of certain pleasures and appetites, as they say, using the phrase ‘master of himself’ I know not how; and there are other similar expressions that as it were point us to the same trail. Is that not so?” “Most certainly.” “Now the phrase ‘master of himself’ is an absurdity, is it not? For he who is master of himself would also be subject to himself, [431a] and he who is subject to himself would be master. For the same person is spoken of in all these expressions.” “Of course.” “But,” said I, “the intended meaning of this way of speaking appears to me to be that the soul of a man within him has a better part and a worse part, and the expression self-mastery means the control of the worse by the naturally better part. It is, at any rate, a term of praise. But when, because of bad breeding or some association, the better part, which is the smaller, is dominated by the multitude of the worse, I think that our speech [431b] censures this as a reproach,<sup> </sup>and calls the man in this plight unselfcontrolled and licentious.” “That seems likely,” he said. “Turn your eyes now upon our new city,” said I, “and you will find one of these conditions existent in it. For you will say that it is justly spoken of as master of itself if that in which the superior rules the inferior is to be called sober and self-mastered.” “I do turn my eyes upon it,” he said, “and it is as you say.” “And again, the mob of motley [431c] appetites and pleasures and pains one would find chiefly in children and women and slaves and in the base rabble of those who are freemen in name.” “By all means.” “But the simple and moderate appetites which with the aid of reason and right opinion are guided by consideration you will find in few and those the best born and best educated.” “True,” he said. “And do you not find this too in your city and a domination there of the desires [431d] in the multitude and the rabble by the desires and the wisdom that dwell in the minority of the better?” “I do,” he said.</p><p id="nxdw1uhpou8">“If, then, there is any city that deserves to be described as master of its pleasures and desires and self-mastered, this one merits that designation.” “Most assuredly,” he said. “And is it not also to be called sober in all these respects?” “Indeed it is,” he said. “And yet again, if there is any city in which [431e] the rulers and the ruled are of one mind as to who ought to rule, that condition will be found in this. Don&#x27;t you think so?” “I most emphatically do,” he said. “In which class of the citizens, then, will you say that the virtue of soberness has its seat when this is their condition? In the rulers or in the ruled?” “In both, I suppose,” he said. “Do you see then,” said I, “that our intuition was not a bad one just now that discerned a likeness between soberness and a kind of harmony?” “Why so?” “Because its operation is unlike that of courage and wisdom, which residing in separate parts [432a] respectively made the city, the one wise and the other brave. That is not the way of soberness, but it extends literally through the entire gamut throughout, bringing about the unison in the same chant of the strongest, the weakest and the intermediate, whether in wisdom or, if you please, in strength, or for that matter in numbers, wealth, or any similar criterion. So that we should be quite right in affirming this unanimity to be soberness, the concord of the naturally superior and inferior [432b] as to which ought to rule both in the state and the individual.” “I entirely concur,” he said. “Very well,” said I. “We have made out these three forms in our city to the best of our present judgement. What can be the remaining form that would give the city still another virtue? For it is obvious that the remainder is justice.” “Obvious.” “Now then, Glaucon, is the time for us like huntsmen to surround the covert and keep close watch that justice may not slip through and get away from us and vanish [432c] from our sight. It plainly must be somewhere hereabouts. Keep your eyes open then and do your best to descry it. You may see it before I do and point it out to me.” “Would that I could,” he said; “but I think rather that if you find in me one who can follow you and discern what you point out to him you will be making a very fair use of me.” “Pray for success then,” said I, “and follow along with me.” “That I will do, only lead on,” he said. “And truly,” said I, “it appears to be an inaccessible place, lying in deep shadows.” “It certainly is a dark covert, [432d] not easy to beat up.” “But all the same on we must go.” “Yes, on.” And I caught view and gave a hulloa and said, “Glaucon, I think we have found its trail and I don&#x27;t believe it will get away from us.” “I am glad to hear that,” said he. “Truly,” said I, “we were slackers indeed.” “How so?” “Why, all the time, bless your heart, the thing apparently was tumbling about our feet from the start and yet we couldn&#x27;t see it, but were most ludicrous, like [432e] people who sometimes hunt for what they hold in their hands. So we did not turn our eyes upon it, but looked off into the distance, which perhaps was the reason it escaped us.” “What do you mean?” he said. “This,” I replied, “that it seems to me that though we were speaking of it and hearing about it all the time we did not understand ourselves or realize that we were speaking of it in a sense.” “That is a tedious prologue,” he said, “for an eager listener.” </p><p id="nkxe4nnglgt">[433a]</p><p id="n77a3y00h9u">“Listen then,” said I, “and learn if there is anything in what I say. For what we laid down in the beginning as a universal requirement when we were founding our city, this I think, or some form of this, is justice. And what we did lay down, and often said, you recall, was that each one man must perform one social service in the state for which his nature is best adapted.” “Yes, we said that.” “And again that to do one&#x27;s own business and not to be a busybody is justice, [433b] is a saying that we have heard from many and have often repeated ourselves.” “We have.” “This, then,” I said, “my friend, if taken in a certain sense appears to be justice, this principle of doing one&#x27;s own business. Do you know whence I infer this?” “No, but tell me,” he said. “I think that this is the remaining virtue in the state after our consideration of soberness, courage, and intelligence, a quality which made it possible for them all to grow up in the body politic and which when they have sprung up preserves them as long as it is present. And I hardly need to remind you that [433c] we said that justice would be the residue after we had found the other three.” “That is an unavoidable conclusion,” he said. “But moreover,” said I, “if we were required to decide what it is whose indwelling presence will contribute most to making our city good, it would be a difficult decision whether it was the unanimity of rulers and ruled or the conservation in the minds of the soldiers of the convictions produced by law as to what things are or are not to be feared, or the watchful intelligence [433d] that resides in the guardians, or whether this is the chief cause of its goodness, the principle embodied in child, woman, slave, free, artisan, ruler, and ruled, that each performed his one task as one man and was not a versatile busybody.” “Hard to decide indeed,” he said. “A thing, then, that in its contribution to the excellence of a state vies with and rivals its wisdom, its soberness, its bravery, is this principle of everyone in it doing his own task.” “It is indeed,” he said. “And is not justice the name you would have to give to the principle that rivals these as conducing to [433e] the virtue of state?” “By all means.” “Consider it in this wise too if so you will be convinced. Will you not assign the conduct of lawsuits in your state to the rulers?” “Of course.” “Will not this be the chief aim of their decisions, that no one shall have what belongs to others or be deprived of his own? Nothing else but this.” “On the assumption that this is just?” “Yes.” “From this point of view too, then, the having and doing [434a] of one&#x27;s own and what belongs to oneself would admittedly be justice.” “That is so.” “Consider now whether you agree with me. A carpenter undertaking to do the work of a cobbler or a cobbler of a carpenter or their interchange of one another&#x27;s tools or honors or even the attempt of the same man to do both—the confounding of all other functions would not, think you, greatly injure a state, would it?” “Not much,” he said. “But when I fancy one who is by nature an artisan or some kind of money-maker [434b] tempted and incited by wealth or command of votes or bodily strength or some similar advantage tries to enter into the class of the soldiers or one of the soldiers into the class of counsellors and guardians, for which he is not fitted, and these interchange their tools and their honors or when the same man undertakes all these functions at once, then, I take it, you too believe that this kind of substitution and meddlesomeness is the ruin of a state.” “By all means.” “The interference with one another&#x27;s business, then, of three existent classes and the substitution of the one for the other [434c] is the greatest injury to a state and would most rightly be designated as the thing which chiefly works it harm.” “Precisely so.” “And the thing that works the greatest harm to one&#x27;s own state, will you not pronounce to be injustice?” “Of course.” “This, then, is injustice.”</p><p id="ny906rfgiaz">“Again, let us put it in this way. The proper functioning of the money-making class, the helpers and the guardians, each doing its own work in the state, being the reverse of that just described, would be justice and would render the city just.” [434d] “I think the case is thus and no otherwise,” said he. “Let us not yet affirm it quite fixedly,” I said, “but if this form when applied to the individual man, accepted there also as a definition of justice, we will then concede the point—for what else will there be to say? But if not, then we will look for something else. But now let us work out the inquiry in which we supposed that, if we found some larger thing that contained justice and viewed it there, we should more easily discover its nature in the individual man. [434e] And we agreed that this larger thing is the city, and so we constructed the best city in our power, well knowing that in the good city it would of course be found. What, then, we thought we saw there we must refer back to the individual and, if it is confirmed, all will be well. But if something different manifests itself in the individual, we will return again [435a] to the state and test it there and it may be that, by examining them side by side and rubbing them against one another, as it were from the fire-sticks we may cause the spark of justice to flash forth, and when it is thus revealed confirm it in our own minds.” “Well,” he said, “that seems a sound method and that is what we must do.” “Then,” said I, “if you call a thing by the same name whether it is big or little, is it unlike in the way in which it is called the same or like?” “Like,” he said. “Then a just man too [435b] will not differ at all from a just city in respect of the very form of justice, but will be like it.” “Yes, like.” “But now the city was thought to be just because three natural kinds existing in it performed each its own function, and again it was sober, brave, and wise because of certain other affections and habits of these three kinds.” “True,” he said. “Then, my friend, we shall thus expect the individual also to have these same forms [435c] in his soul, and by reason of identical affections of these with those in the city to receive properly the same appellations.” “Inevitable,” he said. “Goodness gracious,” said I, “here is another trifling inquiry into which we have plunged, the question whether the soul really contains these three forms in itself or not.” “It does not seem to me at all trifling,” he said, “for perhaps, Socrates, the saying is true that &#x27;fine things are difficult.&#x27;” “Apparently,” said I; [435d] “and let me tell you, Glaucon, that in my opinion we shall never in the world apprehend this matter from such methods as we are now employing in discussion. For there is another longer and harder way that conducts to this. Yet we may perhaps discuss it on the level of previous statements and inquiries.” “May we acquiesce in that?” he said. “I for my part should be quite satisfied with that for the present.” “And I surely should be more than satisfied,” I replied. “Don&#x27;t you weary then,” he said, “but go on with the inquiry.” “Is it not, then,” [435e] said I, “impossible for us to avoid admitting this much, that the same forms and qualities are to be found in each one of us that are in the state? They could not get there from any other source. It would be absurd to suppose that the element of high spirit was not derived in states from the private citizens who are reputed to have this quality as the populations of the Thracian and Scythian lands and generally of northern regions; or the quality of love of knowledge, which would chiefly be attributed to the region where we dwell, [436a] or the love of money which we might say is not least likely to be found in Phoenicians and the population of Egypt.” “One certainly might,” he replied. “This is the fact then,” said I, “and there is no difficulty in recognizing it.” “Certainly not.”</p><p id="nooh08xdfd9">“But the matter begins to be difficult when you ask whether we do all these things with the same thing or whether there are three things and we do one thing with one and one with another—learn with one part of ourselves, feel anger with another, and with yet a third desire the pleasures of nutrition [436b] and generation and their kind, or whether it is with the entire soul that we function in each case when we once begin. That is what is really hard to determine properly.” “I think so too,” he said. “Let us then attempt to define the boundary and decide whether they are identical with one another in this way.” “How?” “It is obvious that the same thing will never do or suffer opposites in the same respect in relation to the same thing and at the same time. So that if ever we find these contradictions in the functions of the mind [436c] we shall know that it was not the same thing functioning but a plurality.” “Very well.” “Consider, then, what I am saying.” “Say on,” he replied. “Is it possible for the same thing at the same time in the same respect to be at rest and in motion?” “By no means.” “Let us have our understanding still more precise, lest as we proceed we become involved in dispute. If anyone should say of a man standing still but moving his hands and head that the same man is at the same time at rest and in motion we should not, I take it, regard that as the right way of expressing it, but rather that a part<sup> </sup>of him is at rest [436d] and a part in motion. Is not that so?” “It is.” “Then if the disputant should carry the jest still further with the subtlety that tops at any rate stand still as a whole at the same time that they are in motion when with the peg fixed in one point they revolve, and that the same is true of any other case of circular motion about the same spot—we should reject the statement on the ground that the repose and the movement in such cases were not in relation to the same parts of the objects, but we would say [436e] that there was a straight line and a circumference in them and that in respect of the straight line they are standing still since they do not incline to either side, but in respect of the circumference they move in a circle; but that when as they revolve they incline the perpendicular to right or left or forward or back, then they are in no wise at rest.” “And that would be right,” he said. “No such remarks then will disconcert us or any whit the more make us believe that it is ever possible for the same thing at the same time in the same respect and the same relation [437a] to suffer, be, or do opposites.” “They will not me, I am sure,” said he. “All the same, said I, “that we may not be forced to examine at tedious length the entire list of such contentions and convince ourselves that they are false, let us proceed on the hypothesis that this is so, with the understanding that, if it ever appear otherwise, everything that results from the assumption shall be invalidated.” “That is what we must do,” he said. [437b]</p><p id="nfatgcj5o1l">“Will you not then,” said I, “set down as opposed to one another assent and dissent, and the endeavor after a thing to the rejection of it, and embracing to repelling—do not these and all things like these belong to the class of opposite actions or passions; it will make no difference which?” “None,” said he, “but they are opposites.” “What then,” said I, “of thirst and hunger and the appetites generally, and again consenting and willing, would you not put them all somewhere in the classes [437c] just described? Will you not say, for example, that the soul of one who desires either strives for that which he desires or draws towards its embrace what it wishes to accrue to it; or again, in so far as it wills that anything be presented to it, nods assent to itself thereon as if someone put the question, striving towards its attainment?” “I would say so,” he said. “But what of not-willing and not consenting nor yet desiring, shall we not put these under the soul&#x27;s rejection and repulsion from itself and [437d] generally into the opposite class from all the former?” “Of course.” “This being so, shall we say that the desires constitute a class and that the most conspicuous members of that class are what we call thirst and hunger?” “We shall,” said he. “Is not the one desire of drink, the other of food?” “Yes.” “Then in so far as it is thirst, would it be of anything more than that of which we say it is a desire in the soul? I mean is thirst thirst for hot drink or cold or much or little or in a word for a draught of any particular quality, or is it the fact that if heat [437e] is attached to the thirst it would further render the desire—a desire of cold, and if cold of hot? But if owing to the presence of muchness the thirst is much it would render it a thirst for much and if little for little. But mere thirst will never be desire of anything else than that of which it is its nature to be, mere drink, and so hunger of food.” “That is so,” he said; “each desire in itself is of that thing only of which it is its nature to be. The epithets belong to the quality—such or such.” [438a] “Let no one then,” said I, “disconcert us when off our guard with the objection that everybody desires not drink but good drink and not food but good food, because (the argument will run) all men desire good, and so, if thirst is desire, it would be of good drink or of good whatsoever it is; and so similarly of other desires.” “Why,” he said, “there perhaps would seem to be something in that objection.” “But I need hardly remind you,” said I, [438b] “that of relative terms those that are somehow qualified are related to a qualified correlate, those that are severally just themselves to a correlate that is just itself.” “I don&#x27;t understand,” he said. “Don&#x27;t you understand,” said I, “that the greater<sup> </sup>is such as to be greater than something?” “Certainly.” “Is it not than the less?” “Yes.” “But the much greater than the much less. Is that not so?” “Yes.” “And may we add the one time greater than the one time less and that which will be greater than that which will be less?” “Surely.” [438c] “And similarly of the more towards the fewer, and the double towards the half and of all like cases, and again of the heavier towards the lighter, the swifter towards the slower, and yet again of the hot towards the cold and all cases of that kind, does not the same hold?” “By all means.” “But what of the sciences? Is not the way of it the same? Science which is just that, is of knowledge which is just that, or is of whatsoever we must assume the correlate of science to be. But a particular science of a particular kind is of some particular thing of a particular kind. [438d] I mean something like this: As there was a science of making a house it differed from other sciences so as to be named architecture.” “Certainly.” “Was not this by reason of its being of a certain kind such as no other of all the rest?” “Yes.” “And was it not because it was of something of a certain kind that it itself became a certain kind of science? And similarly of the other arts and sciences?” “That is so.</p><p id="nmko4cykko4">“This then,” said I, “if haply you now understand, is what you must say I then meant, by the statement that of all things that are such as to be of something those that are just themselves only are of things just themselves only, [438e] but things of a certain kind are of things of a kind. And I don&#x27;t at all mean that they are of the same kind as the things of which they are, so that we are to suppose that the science of health and disease is a healthy and diseased science and that of evil and good, evil and good. I only mean that as science became the science not of just the thing of which science is but of some particular kind of thing, namely, of health and disease, the result was that it itself became some kind of science and this caused it to be no longer called simply science but with the addition of the particular kind, medical science.” “I understand,” he said, “and agree that it is so.” “To return to thirst, then,” said I, [439a] “will you not class it with the things that are of something and say that it is what it is in relation to something—and it is, I presume, thirst?” “I will,” said he, “—namely of drink.” “Then if the drink is of a certain kind, so is the thirst, but thirst that is just thirst is neither of much nor little nor good nor bad, nor in a word of any kind, but just thirst is naturally of just drink only.” “By all means.” “The soul of the thirsty then, in so far as it thirsts, wishes nothing else than to drink, and [439b] yearns for this and its impulse is towards this.” “Obviously.” “Then if anything draws it back<sup> </sup>when thirsty it must be something different in it from that which thirsts and drives it like a beast to drink. For it cannot be, we say, that the same thing with the same part of itself at the same time acts in opposite ways about the same thing.” “We must admit that it does not.” “So I fancy it is not well said of the archer that his hands at the same time thrust away the bow and draw it nigh, but we should rather say that there is one hand that puts it away and another that draws it to.” [439c] “By all means,” he said. “Are we to say, then, that some men sometimes though thirsty refuse to drink?” “We are indeed,” he said, “many and often.” “What then,” said I, “should one affirm about them?” “Is it not that there is something in the soul that bids them drink and a something that forbids, a different something that masters that which bids?” “I think so.” “And is it not the fact that that which inhibits such actions arises when it arises from the calculations of reason, [439d] but the impulses which draw and drag come through affections and diseases?” “Apparently.” “Not unreasonably,” said I, “shall we claim that they are two and different from one another, naming that in the soul whereby it reckons and reasons the rational and that with which it loves, hungers, thirsts, and feels the flutter and titillation of other desires, the irrational and appetitive—companion of various repletions and pleasures.” “It would not be unreasonable but quite natural,” [439e] he said, “for us to think this.” “These two forms, then, let us assume to have been marked off as actually existing in the soul. But now the Thumos or principle of high spirit, that with which we feel anger, is it a third, or would it be identical in nature with one of these?” “Perhaps,” he said, “with one of these, the appetitive.” “But,” I said, “I once heard a story which I believe, that Leontius the son of Aglaion, on his way up from the Peiraeus under the outer side of the northern wall, becoming aware of dead bodies that lay at the place of public execution at the same time felt a desire to see them and a repugnance and aversion, and that for a time [440a] he resisted and veiled his head, but overpowered in despite of all by his desire, with wide staring eyes he rushed up to the corpses and cried, ‘There, ye wretches, take your fill of the fine spectacle!&#x27;” “I too,” he said, “have heard the story.” “Yet, surely, this anecdote,” I said, “signifies that the principle of anger sometimes fights against desires as an alien thing against an alien.” “Yes, it does,” he said.</p><p id="nhzrjwjncf6">“And do we not,” said I, “on many other occasions observe when his desires constrain a man contrary to his reason [440b] that he reviles himself and is angry with that within which masters him and that as it were in a faction of two parties the high spirit of such a man becomes the ally of his reason? But its<sup> </sup>making common cause with the desires against the reason when reason whispers low<sup> </sup>‘Thou must not’—that, I think, is a kind of thing you would not affirm ever to have perceived in yourself, nor, I fancy, in anybody else either.” [440c] “No, by heaven,” he said. “Again, when a man thinks himself to be in the wrong, is it not true that the nobler he is the less is he capable of anger though suffering hunger and cold and whatsoever else at the hands of him whom he believes to be acting justly therein, and as I say his spirit refuses to be aroused against such a one?” “True,” he said. “But what when a man believes himself to be wronged, does not his spirit in that case seethe and grow fierce (and also because of his suffering hunger, [440d] cold and the like) and make itself the ally of what he judges just, and in noble souls it endures and wins the victory and will not let go until either it achieves its purpose, or death ends all, or, as a dog is called back by a shepherd, it is called back by the reason within and calmed.” “Your similitude is perfect,” he said, “and it confirms our former statements that the helpers are as it were dogs subject to the rulers who are as it were the shepherds of the city.” “You apprehend my meaning excellently,” said I. “But do you also [440e] take note of this?” “Of what?” “That what we now think about the spirited element is just the opposite of our recent surmise. For then we supposed it to be a part of the appetitive, but now, far from that, we say that, in the factions of the soul, it much rather marshals itself on the side of the reason.” “By all means,” he said. “Is it then distinct from this too, or is it a form of the rational, so that there are not three but two kinds in the soul, the rational and the appetitive, or just as in the city there were [441a] three existing kinds that composed its structure, the moneymakers, the helpers, the counsellors, so also in the soul there exists a third kind, this principle of high spirit, which is the helper of reason by nature unless it is corrupted by evil nurture?” “We have to assume it as a third,” he said. “Yes,” said I, “provided it shall have been shown to be something different from the rational, as it has been shown to be other than the appetitive.” “That is not hard to be shown,” he said; “for that much one can see in children, that they are from their very birth chock-full of rage and high spirit, but as for reason, [441b] some of them, to my thinking, never participate in it, and the majority quite late.” “Yes, by heaven, excellently said,” I replied; “and further, one could see in animals that what you say is true. And to these instances we may add the testimony of Homer quoted above:“ He smote his breast and chided thus his heart.<br/>”<a href="http://www.perseus.tufts.edu/hopper/text?doc=Hom.%20Od.%2020.17&amp;lang=original" target="_new"><strong>Hom. Od. 20.17</strong></a> For there Homer has clearly represented that in us [441c] which has reflected about the better and the worse as rebuking that which feels unreasoning anger as if it were a distinct and different thing.” “You are entirely right,” he said.</p><p id="n29j8n64lwc">“Through these waters, then,” said I, “we have with difficulty made our way and we are fairly agreed that the same kinds equal in number are to be found in the state and in the soul of each one of us.” “That is so.” “Then does not the necessity of our former postulate immediately follow, that as and whereby the state was wise so and thereby is the individual wise?” “Surely.” “And so whereby and as [441d] the individual is brave, thereby and so is the state brave, and that both should have all the other constituents of virtue in the same way?” “Necessarily.” “Just too, then, Glaucon, I presume we shall say a man is in the same way in which a city was just.” “That too is quite inevitable.” “But we surely cannot have forgotten this, that the state was just by reason of each of the three classes found in it fulfilling its own function.” “I don&#x27;t think we have forgotten,” he said. “We must remember, then, that each of us also in whom the several parts within him [441e] perform each their own task—he will be a just man and one who minds his own affair.” “We must indeed remember,” he said. “Does it not belong to the rational part to rule, being wise and exercising forethought in behalf of the entire soul, and to the principle of high spirit to be subject to this and its ally?” “Assuredly.” “Then is it not, as we said, the blending of music and gymnastics that will render them concordant, intensifying [442a] and fostering the one with fair words and teachings and relaxing and soothing and making gentle the other by harmony and rhythm?” “Quite so,” said he. “And these two thus reared and having learned and been educated to do their own work in the true sense of the phrase, will preside over the appetitive part which is the mass of the soul in each of us and the most insatiate by nature of wealth. They will keep watch upon it, lest, by being filled and infected with the so-called pleasures associated with the body and so waxing big and strong, it may not keep to its own work [442b] but may undertake to enslave and rule over the classes which it is not fitting that it should, and so overturn the entire life of all.” “By all means,” he said. “Would not these two, then, best keep guard against enemies from without also in behalf of the entire soul and body, the one taking counsel, the other giving battle, attending upon the ruler, and by its courage executing the ruler&#x27;s designs?” “That is so.” “Brave, too, then, I take it, we call [442c] each individual by virtue of this part in him, when, namely, his high spirit preserves in the midst of pains and pleasures the rule handed down by the reason as to what is or is not to be feared.” “Right,” he said. “But wise by that small part that ruled in him and handed down these commands, by its possession in turn within it of the knowledge of what is beneficial for each and for the whole, the community composed of the three.” “By all means.” “And again, was he not sober [442d] by reason of the friendship and concord of these same parts, when, namely, the ruling principle and its two subjects are at one in the belief that the reason ought to rule, and do not raise faction against it?” “The virtue of soberness certainly,” said he, “is nothing else than this, whether in a city or an individual.” “But surely, now, a man is just by that which and in the way we have so often described.” “That is altogether necessary.” “Well then,” said I, “has our idea of justice in any way lost the edge of its contour so as to look like anything else than precisely what it showed itself to be in the state?” “I think not,” he said. [442e] “We might,” I said, “completely confirm your reply and our own conviction thus, if anything in our minds still disputes our definition—by applying commonplace and vulgar tests to it.” “What are these?” “For example, if an answer were demanded to the question concerning that city and the man whose birth and breeding was in harmony with it, whether we believe that such a man, entrusted with a deposit of gold or silver, would withhold it and embezzle it, who do you suppose would think that he would be more likely so to act [443a] than men of a different kind?” “No one would,” he said. “And would not he be far removed from sacrilege and theft and betrayal of comrades in private life or of the state in public?” “He would.” “And, moreover, he would not be in any way faithless either in the keeping of his oaths or in other agreements.” “How could he?” “Adultery, surely, and neglect of parents and of the due service of the gods would pertain to anyone rather than to such a man.” “To anyone indeed,” [443b] he said. “And is not the cause of this to be found in the fact that each of the principles within him does its own work in the matter of ruling and being ruled?” “Yes, that and nothing else.” “Do you still, then, look for justice to be anything else than this potency which provides men and cities of this sort?” “No, by heaven,” he said, “I do not.”</p><p id="nfh9uwh5j3o">“Finished, then, is our dream and perfected —the surmise we spoke of, that, by some Providence, at the very beginning of our foundation of the state, [443c] we chanced to hit upon the original principle and a sort of type of justice.” “Most assuredly.” “It really was, it seems, Glaucon, which is why it helps, a sort of adumbration of justice, this principle that it is right for the cobbler by nature to cobble and occupy himself with nothing else, and the carpenter to practice carpentry, and similarly all others. But the truth of the matter was, as it seems, [443d] that justice is indeed something of this kind, yet not in regard to the doing of one&#x27;s own business externally, but with regard to that which is within and in the true sense concerns one&#x27;s self, and the things of one&#x27;s self—it means that a man must not suffer the principles in his soul to do each the work of some other and interfere and meddle with one another, but that he should dispose well of what in the true sense of the word is properly his own, and having first attained to self-mastery<sup> </sup>and beautiful order within himself, and having harmonized these three principles, the notes or intervals of three terms quite literally the lowest, the highest, and the mean, [443e] and all others there may be between them, and having linked and bound all three together and made of himself a unit, one man instead of many, self-controlled and in unison, he should then and then only turn to practice if he find aught to do either in the getting of wealth or the tendance of the body or it may be in political action or private business, in all such doings believing and naming the just and honorable action to be that which preserves and helps to produce this condition of soul, and wisdom the science [444a] that presides over such conduct; and believing and naming the unjust action to be that which ever tends to overthrow this spiritual constitution, and brutish ignorance, to be the opinion that in turn presides over this.” “What you say is entirely true, Socrates.” “Well,” said I, “if we should affirm that we had found the just man and state and what justice really is in them, I think we should not be much mistaken.” “No indeed, we should not,” he said. “Shall we affirm it, then?” “Let us so affirm.”</p><p id="nievinr4txd">“So be it, then,” said I; “next after this, I take it, we must consider injustice.” “Obviously.” [444b] “Must not this be a kind of civil war<sup> </sup>of these three principles, their meddlesomeness and interference with one another&#x27;s functions, and the revolt of one part against the whole of the soul that it may hold therein a rule which does not belong to it, since its nature is such that it befits it to serve as a slave to the ruling principle? Something of this sort, I fancy, is what we shall say, and that the confusion of these principles and their straying from their proper course is injustice and licentiousness and cowardice and brutish ignorance and, in general, all turpitude.” “Precisely this,” [444c] he replied. “Then,” said I, “to act unjustly and be unjust and in turn to act justly the meaning of all these terms becomes at once plain and clear, since injustice and justice are so.” “How so?” “Because,” said I, “these are in the soul what the healthful and the diseaseful are in the body; there is no difference.” “In what respect?” he said. “Healthful things surely engender health and diseaseful disease.” “Yes.” “Then does not doing just acts engender justice [444d] and unjust injustice?” “Of necessity.” “But to produce health is to establish the elements in a body in the natural relation of dominating and being dominated<sup> </sup>by one another, while to cause disease is to bring it about that one rules or is ruled by the other contrary to nature.” “Yes, that is so.” “And is it not likewise the production of justice in the soul to establish its principles in the natural relation of controlling and being controlled by one another, while injustice is to cause the one to rule or be ruled by the other contrary to nature?” “Exactly so,” he said. “Virtue, then, as it seems, would be a kind of health [444e] and beauty and good condition of the soul, and vice would be disease, ugliness, and weakness.” “It is so.” “Then is it not also true that beautiful and honorable pursuits tend to the winning of virtue and the ugly to vice?” “Of necessity.”</p><p id="nv1chs8k9v5">“And now at last, it seems, it remains for us to consider whether it is profitable to do justice [445a] and practice honorable pursuits and be just, whether<sup> </sup>one is known to be such or not, or whether injustice profits, and to be unjust, if only a man escape punishment and is not bettered by chastisement.” “Nay, Socrates,” he said, “I think that from this point on our inquiry becomes an absurdity—if, while life is admittedly intolerable with a ruined constitution of body even though accompanied by all the food and drink and wealth and power in the world, we are yet to be asked to suppose that, when the very nature and constitution of that whereby we live is disordered [445b] and corrupted, life is going to be worth living, if a man can only do as he pleases,<sup> </sup>and pleases to do anything save that which will rid him of evil and injustice and make him possessed of justice and virtue—now that the two have been shown to be as we have described them.” “Yes, it is absurd,” said I; “but nevertheless, now that we have won to this height, we must not grow weary in endeavoring to discover with the utmost possible clearness that these things are so.” “That is the last thing in the world we must do,” he said. [445c] “Come up here then,” said I, “that you may see how many are the kinds of evil, I mean those that it is worth while to observe and distinguish.” “I am with you,” he said; “only do you say on.” “And truly,” said I, “now that we have come to this height of argument I seem to see as from a point of outlook that there is one form of excellence, and that the forms of evil are infinite, yet that there are some four among them that it is worth while to take note of.” “What do you mean?” he said. “As many as are the varieties of political constitutions that constitute specific types, so many, it seems likely, [445d] are the characters of soul.” “How many, pray?” “There are five kinds of constitutions,” said I, “and five kinds of soul.” “Tell me what they are,” he said. “I tell you,” said I, “that one way of government would be the constitution that we have just expounded, but the names that might be applied to it are two. If one man of surpassing merit rose among the rulers, it would be denominated royalty; if more than one, aristocracy.” “True,” he said. “Well, then,” I said, “this is one of the forms I have in mind. [445e] For neither would a number of such men, nor one if he arose among them, alter to any extent worth mentioning the laws of our city—if he preserved the breeding and the education that we have described.” “It is not likely,” he said.</p><div class="pub-notes"></div></div></div></body></html>

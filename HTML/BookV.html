@@ -1,0 +1,2667 @@
+<html lang="en"><head><title>Plato&#x27;s Republic Book V, translated by Paul Shorey</title><meta charSet="utf-8"/><style type="text/css">/* Imports the equivalent of components/Editor/styles/base.scss,
+but without the media query mixin, which breaks PagedJS-cli:
+https://gitlab.pagedmedia.org/tools/pagedjs-cli/issues/11 */
+@import url("https://use.typekit.net/kmi0tdo.css");
+.ProseMirror {
+  position: relative;
+}
+
+.ProseMirror {
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  white-space: break-spaces;
+  -webkit-font-variant-ligatures: none;
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0; /* the above doesn't seem to work in Edge */
+}
+
+.ProseMirror pre {
+  white-space: pre-wrap;
+}
+
+.ProseMirror li {
+  position: relative;
+}
+
+.ProseMirror-hideselection *::selection {
+  background: transparent;
+}
+
+.ProseMirror-hideselection *::-moz-selection {
+  background: transparent;
+}
+
+.ProseMirror-hideselection {
+  caret-color: transparent;
+}
+
+.ProseMirror-selectednode {
+  outline: 2px solid #8cf;
+}
+
+/* Make sure li selections wrap around markers */
+li.ProseMirror-selectednode {
+  outline: none;
+}
+
+li.ProseMirror-selectednode:after {
+  content: "";
+  position: absolute;
+  left: -32px;
+  right: -2px;
+  top: -2px;
+  bottom: -2px;
+  border: 2px solid #8cf;
+  pointer-events: none;
+}
+
+/* Protect against generic img rules */
+img.ProseMirror-separator {
+  display: inline !important;
+  border: none !important;
+  margin: 0 !important;
+}
+
+.ProseMirror-gapcursor {
+  display: none;
+  pointer-events: none;
+  position: absolute;
+}
+
+.ProseMirror-gapcursor:after {
+  content: "";
+  display: block;
+  position: absolute;
+  top: -2px;
+  width: 20px;
+  border-top: 1px solid black;
+  animation: ProseMirror-cursor-blink 1.1s steps(2, start) infinite;
+}
+
+@keyframes ProseMirror-cursor-blink {
+  to {
+    visibility: hidden;
+  }
+}
+.ProseMirror-focused .ProseMirror-gapcursor {
+  display: block;
+}
+
+.ProseMirror .tableWrapper {
+  overflow-x: auto;
+}
+
+.ProseMirror table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  overflow: hidden;
+}
+
+.ProseMirror td,
+.ProseMirror th {
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.ProseMirror .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  z-index: 20;
+  background-color: #adf;
+  pointer-events: none;
+}
+
+.ProseMirror.resize-cursor {
+  cursor: ew-resize;
+  cursor: col-resize;
+}
+
+/* Give selected cells a blue overlay */
+.ProseMirror .selectedCell:after {
+  z-index: 2;
+  position: absolute;
+  content: "";
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(200, 200, 255, 0.4);
+  pointer-events: none;
+}
+
+/*---------------------------------------------------------
+ *  Author: Benjamin R. Bray
+ *  License: MIT (see LICENSE in project root for details)
+ *--------------------------------------------------------*/
+/* == Math Nodes ======================================== */
+.math-node {
+  min-width: 1em;
+  min-height: 1em;
+  font-size: 0.95em;
+  font-family: "Consolas", "Ubuntu Mono", monospace;
+  cursor: auto;
+}
+
+.math-node.empty-math .math-render::before {
+  content: "(empty)";
+  color: red;
+}
+
+.math-node .math-render.parse-error::before {
+  content: "(math error)";
+  color: red;
+  cursor: help;
+}
+
+.math-node.ProseMirror-selectednode {
+  outline: none;
+}
+
+.math-node .math-src {
+  display: none;
+  color: rgb(132, 33, 162);
+  tab-size: 4;
+}
+
+.math-node.ProseMirror-selectednode .math-src {
+  display: inline;
+}
+
+.math-node.ProseMirror-selectednode .math-render {
+  display: none;
+}
+
+/* -- Inline Math --------------------------------------- */
+math-inline {
+  display: inline;
+  white-space: nowrap;
+}
+
+math-inline .math-render {
+  display: inline-block;
+  font-size: 0.85em;
+  cursor: pointer;
+}
+
+math-inline .math-src .ProseMirror {
+  display: inline;
+  /* Necessary to fix FireFox bug with contenteditable, https://bugzilla.mozilla.org/show_bug.cgi?id=1252108 */
+  border-right: 1px solid transparent;
+  border-left: 1px solid transparent;
+}
+
+math-inline .math-src::after, math-inline .math-src::before {
+  content: "$";
+  color: #b0b0b0;
+}
+
+/* -- Block Math ---------------------------------------- */
+math-display {
+  display: block;
+}
+
+math-display .math-render {
+  display: block;
+}
+
+math-display.ProseMirror-selectednode {
+  background-color: #eee;
+}
+
+math-display .math-src .ProseMirror {
+  width: 100%;
+  display: block;
+}
+
+math-display .math-src::after, math-display .math-src::before {
+  content: "$$";
+  text-align: left;
+  color: #b0b0b0;
+}
+
+math-display .katex-display {
+  margin: 0;
+}
+
+/* -- Selection Plugin ---------------------------------- */
+p::selection, p > *::selection {
+  background-color: #c0c0c0;
+}
+
+.katex-html *::selection {
+  background-color: none !important;
+}
+
+.math-node.math-select .math-render {
+  background-color: silver;
+}
+
+math-inline.math-select .math-render {
+  padding-top: 2px;
+}
+
+@font-face {
+  font-family: KaTeX_AMS;
+  font-style: normal;
+  font-weight: 400;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_AMS-Regular.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_AMS-Regular.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_AMS-Regular.ttf) format("truetype");
+}
+@font-face {
+  font-family: KaTeX_Caligraphic;
+  font-style: normal;
+  font-weight: 700;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Caligraphic-Bold.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Caligraphic-Bold.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Caligraphic-Bold.ttf) format("truetype");
+}
+@font-face {
+  font-family: KaTeX_Caligraphic;
+  font-style: normal;
+  font-weight: 400;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Caligraphic-Regular.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Caligraphic-Regular.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Caligraphic-Regular.ttf) format("truetype");
+}
+@font-face {
+  font-family: KaTeX_Fraktur;
+  font-style: normal;
+  font-weight: 700;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Fraktur-Bold.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Fraktur-Bold.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Fraktur-Bold.ttf) format("truetype");
+}
+@font-face {
+  font-family: KaTeX_Fraktur;
+  font-style: normal;
+  font-weight: 400;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Fraktur-Regular.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Fraktur-Regular.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Fraktur-Regular.ttf) format("truetype");
+}
+@font-face {
+  font-family: KaTeX_Main;
+  font-style: normal;
+  font-weight: 700;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Main-Bold.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Main-Bold.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Main-Bold.ttf) format("truetype");
+}
+@font-face {
+  font-family: KaTeX_Main;
+  font-style: italic;
+  font-weight: 700;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Main-BoldItalic.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Main-BoldItalic.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Main-BoldItalic.ttf) format("truetype");
+}
+@font-face {
+  font-family: KaTeX_Main;
+  font-style: italic;
+  font-weight: 400;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Main-Italic.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Main-Italic.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Main-Italic.ttf) format("truetype");
+}
+@font-face {
+  font-family: KaTeX_Main;
+  font-style: normal;
+  font-weight: 400;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Main-Regular.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Main-Regular.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Main-Regular.ttf) format("truetype");
+}
+@font-face {
+  font-family: KaTeX_Math;
+  font-style: italic;
+  font-weight: 700;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Math-BoldItalic.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Math-BoldItalic.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Math-BoldItalic.ttf) format("truetype");
+}
+@font-face {
+  font-family: KaTeX_Math;
+  font-style: italic;
+  font-weight: 400;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Math-Italic.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Math-Italic.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Math-Italic.ttf) format("truetype");
+}
+@font-face {
+  font-family: "KaTeX_SansSerif";
+  font-style: normal;
+  font-weight: 700;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_SansSerif-Bold.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_SansSerif-Bold.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_SansSerif-Bold.ttf) format("truetype");
+}
+@font-face {
+  font-family: "KaTeX_SansSerif";
+  font-style: italic;
+  font-weight: 400;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_SansSerif-Italic.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_SansSerif-Italic.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_SansSerif-Italic.ttf) format("truetype");
+}
+@font-face {
+  font-family: "KaTeX_SansSerif";
+  font-style: normal;
+  font-weight: 400;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_SansSerif-Regular.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_SansSerif-Regular.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_SansSerif-Regular.ttf) format("truetype");
+}
+@font-face {
+  font-family: KaTeX_Script;
+  font-style: normal;
+  font-weight: 400;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Script-Regular.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Script-Regular.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Script-Regular.ttf) format("truetype");
+}
+@font-face {
+  font-family: KaTeX_Size1;
+  font-style: normal;
+  font-weight: 400;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Size1-Regular.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Size1-Regular.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Size1-Regular.ttf) format("truetype");
+}
+@font-face {
+  font-family: KaTeX_Size2;
+  font-style: normal;
+  font-weight: 400;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Size2-Regular.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Size2-Regular.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Size2-Regular.ttf) format("truetype");
+}
+@font-face {
+  font-family: KaTeX_Size3;
+  font-style: normal;
+  font-weight: 400;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Size3-Regular.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Size3-Regular.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Size3-Regular.ttf) format("truetype");
+}
+@font-face {
+  font-family: KaTeX_Size4;
+  font-style: normal;
+  font-weight: 400;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Size4-Regular.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Size4-Regular.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Size4-Regular.ttf) format("truetype");
+}
+@font-face {
+  font-family: KaTeX_Typewriter;
+  font-style: normal;
+  font-weight: 400;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Typewriter-Regular.woff2) format("woff2"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Typewriter-Regular.woff) format("woff"), url(https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.18/fonts/KaTeX_Typewriter-Regular.ttf) format("truetype");
+}
+.katex {
+  text-rendering: auto;
+  font: normal 1.21em KaTeX_Main, Times New Roman, serif;
+  line-height: 1.2;
+  text-indent: 0;
+}
+
+.katex * {
+  -ms-high-contrast-adjust: none !important;
+  border-color: currentColor;
+}
+
+.katex .katex-version:after {
+  content: "0.13.24";
+}
+
+.katex .katex-mathml {
+  clip: rect(1px, 1px, 1px, 1px);
+  border: 0;
+  height: 1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  width: 1px;
+}
+
+.katex .katex-html > .newline {
+  display: block;
+}
+
+.katex .base {
+  position: relative;
+  white-space: nowrap;
+  width: -webkit-min-content;
+  width: -moz-min-content;
+  width: min-content;
+}
+
+.katex .base, .katex .strut {
+  display: inline-block;
+}
+
+.katex .textbf {
+  font-weight: 700;
+}
+
+.katex .textit {
+  font-style: italic;
+}
+
+.katex .textrm {
+  font-family: KaTeX_Main;
+}
+
+.katex .textsf {
+  font-family: KaTeX_SansSerif;
+}
+
+.katex .texttt {
+  font-family: KaTeX_Typewriter;
+}
+
+.katex .mathnormal {
+  font-family: KaTeX_Math;
+  font-style: italic;
+}
+
+.katex .mathit {
+  font-family: KaTeX_Main;
+  font-style: italic;
+}
+
+.katex .mathrm {
+  font-style: normal;
+}
+
+.katex .mathbf {
+  font-family: KaTeX_Main;
+  font-weight: 700;
+}
+
+.katex .boldsymbol {
+  font-family: KaTeX_Math;
+  font-style: italic;
+  font-weight: 700;
+}
+
+.katex .amsrm, .katex .mathbb, .katex .textbb {
+  font-family: KaTeX_AMS;
+}
+
+.katex .mathcal {
+  font-family: KaTeX_Caligraphic;
+}
+
+.katex .mathfrak, .katex .textfrak {
+  font-family: KaTeX_Fraktur;
+}
+
+.katex .mathtt {
+  font-family: KaTeX_Typewriter;
+}
+
+.katex .mathscr, .katex .textscr {
+  font-family: KaTeX_Script;
+}
+
+.katex .mathsf, .katex .textsf {
+  font-family: KaTeX_SansSerif;
+}
+
+.katex .mathboldsf, .katex .textboldsf {
+  font-family: KaTeX_SansSerif;
+  font-weight: 700;
+}
+
+.katex .mathitsf, .katex .textitsf {
+  font-family: KaTeX_SansSerif;
+  font-style: italic;
+}
+
+.katex .mainrm {
+  font-family: KaTeX_Main;
+  font-style: normal;
+}
+
+.katex .vlist-t {
+  border-collapse: collapse;
+  display: inline-table;
+  table-layout: fixed;
+}
+
+.katex .vlist-r {
+  display: table-row;
+}
+
+.katex .vlist {
+  display: table-cell;
+  position: relative;
+  vertical-align: bottom;
+}
+
+.katex .vlist > span {
+  display: block;
+  height: 0;
+  position: relative;
+}
+
+.katex .vlist > span > span {
+  display: inline-block;
+}
+
+.katex .vlist > span > .pstrut {
+  overflow: hidden;
+  width: 0;
+}
+
+.katex .vlist-t2 {
+  margin-right: -2px;
+}
+
+.katex .vlist-s {
+  display: table-cell;
+  font-size: 1px;
+  min-width: 2px;
+  vertical-align: bottom;
+  width: 2px;
+}
+
+.katex .vbox {
+  align-items: baseline;
+  display: inline-flex;
+  flex-direction: column;
+}
+
+.katex .hbox {
+  width: 100%;
+}
+
+.katex .hbox, .katex .thinbox {
+  display: inline-flex;
+  flex-direction: row;
+}
+
+.katex .thinbox {
+  max-width: 0;
+  width: 0;
+}
+
+.katex .msupsub {
+  text-align: left;
+}
+
+.katex .mfrac > span > span {
+  text-align: center;
+}
+
+.katex .mfrac .frac-line {
+  border-bottom-style: solid;
+  display: inline-block;
+  width: 100%;
+}
+
+.katex .hdashline, .katex .hline, .katex .mfrac .frac-line, .katex .overline .overline-line, .katex .rule, .katex .underline .underline-line {
+  min-height: 1px;
+}
+
+.katex .mspace {
+  display: inline-block;
+}
+
+.katex .clap, .katex .llap, .katex .rlap {
+  position: relative;
+  width: 0;
+}
+
+.katex .clap > .inner, .katex .llap > .inner, .katex .rlap > .inner {
+  position: absolute;
+}
+
+.katex .clap > .fix, .katex .llap > .fix, .katex .rlap > .fix {
+  display: inline-block;
+}
+
+.katex .llap > .inner {
+  right: 0;
+}
+
+.katex .clap > .inner, .katex .rlap > .inner {
+  left: 0;
+}
+
+.katex .clap > .inner > span {
+  margin-left: -50%;
+  margin-right: 50%;
+}
+
+.katex .rule {
+  border: 0 solid;
+  display: inline-block;
+  position: relative;
+}
+
+.katex .hline, .katex .overline .overline-line, .katex .underline .underline-line {
+  border-bottom-style: solid;
+  display: inline-block;
+  width: 100%;
+}
+
+.katex .hdashline {
+  border-bottom-style: dashed;
+  display: inline-block;
+  width: 100%;
+}
+
+.katex .sqrt > .root {
+  margin-left: 0.27777778em;
+  margin-right: -0.55555556em;
+}
+
+.katex .fontsize-ensurer.reset-size1.size1, .katex .sizing.reset-size1.size1 {
+  font-size: 1em;
+}
+
+.katex .fontsize-ensurer.reset-size1.size2, .katex .sizing.reset-size1.size2 {
+  font-size: 1.2em;
+}
+
+.katex .fontsize-ensurer.reset-size1.size3, .katex .sizing.reset-size1.size3 {
+  font-size: 1.4em;
+}
+
+.katex .fontsize-ensurer.reset-size1.size4, .katex .sizing.reset-size1.size4 {
+  font-size: 1.6em;
+}
+
+.katex .fontsize-ensurer.reset-size1.size5, .katex .sizing.reset-size1.size5 {
+  font-size: 1.8em;
+}
+
+.katex .fontsize-ensurer.reset-size1.size6, .katex .sizing.reset-size1.size6 {
+  font-size: 2em;
+}
+
+.katex .fontsize-ensurer.reset-size1.size7, .katex .sizing.reset-size1.size7 {
+  font-size: 2.4em;
+}
+
+.katex .fontsize-ensurer.reset-size1.size8, .katex .sizing.reset-size1.size8 {
+  font-size: 2.88em;
+}
+
+.katex .fontsize-ensurer.reset-size1.size9, .katex .sizing.reset-size1.size9 {
+  font-size: 3.456em;
+}
+
+.katex .fontsize-ensurer.reset-size1.size10, .katex .sizing.reset-size1.size10 {
+  font-size: 4.148em;
+}
+
+.katex .fontsize-ensurer.reset-size1.size11, .katex .sizing.reset-size1.size11 {
+  font-size: 4.976em;
+}
+
+.katex .fontsize-ensurer.reset-size2.size1, .katex .sizing.reset-size2.size1 {
+  font-size: 0.83333333em;
+}
+
+.katex .fontsize-ensurer.reset-size2.size2, .katex .sizing.reset-size2.size2 {
+  font-size: 1em;
+}
+
+.katex .fontsize-ensurer.reset-size2.size3, .katex .sizing.reset-size2.size3 {
+  font-size: 1.16666667em;
+}
+
+.katex .fontsize-ensurer.reset-size2.size4, .katex .sizing.reset-size2.size4 {
+  font-size: 1.33333333em;
+}
+
+.katex .fontsize-ensurer.reset-size2.size5, .katex .sizing.reset-size2.size5 {
+  font-size: 1.5em;
+}
+
+.katex .fontsize-ensurer.reset-size2.size6, .katex .sizing.reset-size2.size6 {
+  font-size: 1.66666667em;
+}
+
+.katex .fontsize-ensurer.reset-size2.size7, .katex .sizing.reset-size2.size7 {
+  font-size: 2em;
+}
+
+.katex .fontsize-ensurer.reset-size2.size8, .katex .sizing.reset-size2.size8 {
+  font-size: 2.4em;
+}
+
+.katex .fontsize-ensurer.reset-size2.size9, .katex .sizing.reset-size2.size9 {
+  font-size: 2.88em;
+}
+
+.katex .fontsize-ensurer.reset-size2.size10, .katex .sizing.reset-size2.size10 {
+  font-size: 3.45666667em;
+}
+
+.katex .fontsize-ensurer.reset-size2.size11, .katex .sizing.reset-size2.size11 {
+  font-size: 4.14666667em;
+}
+
+.katex .fontsize-ensurer.reset-size3.size1, .katex .sizing.reset-size3.size1 {
+  font-size: 0.71428571em;
+}
+
+.katex .fontsize-ensurer.reset-size3.size2, .katex .sizing.reset-size3.size2 {
+  font-size: 0.85714286em;
+}
+
+.katex .fontsize-ensurer.reset-size3.size3, .katex .sizing.reset-size3.size3 {
+  font-size: 1em;
+}
+
+.katex .fontsize-ensurer.reset-size3.size4, .katex .sizing.reset-size3.size4 {
+  font-size: 1.14285714em;
+}
+
+.katex .fontsize-ensurer.reset-size3.size5, .katex .sizing.reset-size3.size5 {
+  font-size: 1.28571429em;
+}
+
+.katex .fontsize-ensurer.reset-size3.size6, .katex .sizing.reset-size3.size6 {
+  font-size: 1.42857143em;
+}
+
+.katex .fontsize-ensurer.reset-size3.size7, .katex .sizing.reset-size3.size7 {
+  font-size: 1.71428571em;
+}
+
+.katex .fontsize-ensurer.reset-size3.size8, .katex .sizing.reset-size3.size8 {
+  font-size: 2.05714286em;
+}
+
+.katex .fontsize-ensurer.reset-size3.size9, .katex .sizing.reset-size3.size9 {
+  font-size: 2.46857143em;
+}
+
+.katex .fontsize-ensurer.reset-size3.size10, .katex .sizing.reset-size3.size10 {
+  font-size: 2.96285714em;
+}
+
+.katex .fontsize-ensurer.reset-size3.size11, .katex .sizing.reset-size3.size11 {
+  font-size: 3.55428571em;
+}
+
+.katex .fontsize-ensurer.reset-size4.size1, .katex .sizing.reset-size4.size1 {
+  font-size: 0.625em;
+}
+
+.katex .fontsize-ensurer.reset-size4.size2, .katex .sizing.reset-size4.size2 {
+  font-size: 0.75em;
+}
+
+.katex .fontsize-ensurer.reset-size4.size3, .katex .sizing.reset-size4.size3 {
+  font-size: 0.875em;
+}
+
+.katex .fontsize-ensurer.reset-size4.size4, .katex .sizing.reset-size4.size4 {
+  font-size: 1em;
+}
+
+.katex .fontsize-ensurer.reset-size4.size5, .katex .sizing.reset-size4.size5 {
+  font-size: 1.125em;
+}
+
+.katex .fontsize-ensurer.reset-size4.size6, .katex .sizing.reset-size4.size6 {
+  font-size: 1.25em;
+}
+
+.katex .fontsize-ensurer.reset-size4.size7, .katex .sizing.reset-size4.size7 {
+  font-size: 1.5em;
+}
+
+.katex .fontsize-ensurer.reset-size4.size8, .katex .sizing.reset-size4.size8 {
+  font-size: 1.8em;
+}
+
+.katex .fontsize-ensurer.reset-size4.size9, .katex .sizing.reset-size4.size9 {
+  font-size: 2.16em;
+}
+
+.katex .fontsize-ensurer.reset-size4.size10, .katex .sizing.reset-size4.size10 {
+  font-size: 2.5925em;
+}
+
+.katex .fontsize-ensurer.reset-size4.size11, .katex .sizing.reset-size4.size11 {
+  font-size: 3.11em;
+}
+
+.katex .fontsize-ensurer.reset-size5.size1, .katex .sizing.reset-size5.size1 {
+  font-size: 0.55555556em;
+}
+
+.katex .fontsize-ensurer.reset-size5.size2, .katex .sizing.reset-size5.size2 {
+  font-size: 0.66666667em;
+}
+
+.katex .fontsize-ensurer.reset-size5.size3, .katex .sizing.reset-size5.size3 {
+  font-size: 0.77777778em;
+}
+
+.katex .fontsize-ensurer.reset-size5.size4, .katex .sizing.reset-size5.size4 {
+  font-size: 0.88888889em;
+}
+
+.katex .fontsize-ensurer.reset-size5.size5, .katex .sizing.reset-size5.size5 {
+  font-size: 1em;
+}
+
+.katex .fontsize-ensurer.reset-size5.size6, .katex .sizing.reset-size5.size6 {
+  font-size: 1.11111111em;
+}
+
+.katex .fontsize-ensurer.reset-size5.size7, .katex .sizing.reset-size5.size7 {
+  font-size: 1.33333333em;
+}
+
+.katex .fontsize-ensurer.reset-size5.size8, .katex .sizing.reset-size5.size8 {
+  font-size: 1.6em;
+}
+
+.katex .fontsize-ensurer.reset-size5.size9, .katex .sizing.reset-size5.size9 {
+  font-size: 1.92em;
+}
+
+.katex .fontsize-ensurer.reset-size5.size10, .katex .sizing.reset-size5.size10 {
+  font-size: 2.30444444em;
+}
+
+.katex .fontsize-ensurer.reset-size5.size11, .katex .sizing.reset-size5.size11 {
+  font-size: 2.76444444em;
+}
+
+.katex .fontsize-ensurer.reset-size6.size1, .katex .sizing.reset-size6.size1 {
+  font-size: 0.5em;
+}
+
+.katex .fontsize-ensurer.reset-size6.size2, .katex .sizing.reset-size6.size2 {
+  font-size: 0.6em;
+}
+
+.katex .fontsize-ensurer.reset-size6.size3, .katex .sizing.reset-size6.size3 {
+  font-size: 0.7em;
+}
+
+.katex .fontsize-ensurer.reset-size6.size4, .katex .sizing.reset-size6.size4 {
+  font-size: 0.8em;
+}
+
+.katex .fontsize-ensurer.reset-size6.size5, .katex .sizing.reset-size6.size5 {
+  font-size: 0.9em;
+}
+
+.katex .fontsize-ensurer.reset-size6.size6, .katex .sizing.reset-size6.size6 {
+  font-size: 1em;
+}
+
+.katex .fontsize-ensurer.reset-size6.size7, .katex .sizing.reset-size6.size7 {
+  font-size: 1.2em;
+}
+
+.katex .fontsize-ensurer.reset-size6.size8, .katex .sizing.reset-size6.size8 {
+  font-size: 1.44em;
+}
+
+.katex .fontsize-ensurer.reset-size6.size9, .katex .sizing.reset-size6.size9 {
+  font-size: 1.728em;
+}
+
+.katex .fontsize-ensurer.reset-size6.size10, .katex .sizing.reset-size6.size10 {
+  font-size: 2.074em;
+}
+
+.katex .fontsize-ensurer.reset-size6.size11, .katex .sizing.reset-size6.size11 {
+  font-size: 2.488em;
+}
+
+.katex .fontsize-ensurer.reset-size7.size1, .katex .sizing.reset-size7.size1 {
+  font-size: 0.41666667em;
+}
+
+.katex .fontsize-ensurer.reset-size7.size2, .katex .sizing.reset-size7.size2 {
+  font-size: 0.5em;
+}
+
+.katex .fontsize-ensurer.reset-size7.size3, .katex .sizing.reset-size7.size3 {
+  font-size: 0.58333333em;
+}
+
+.katex .fontsize-ensurer.reset-size7.size4, .katex .sizing.reset-size7.size4 {
+  font-size: 0.66666667em;
+}
+
+.katex .fontsize-ensurer.reset-size7.size5, .katex .sizing.reset-size7.size5 {
+  font-size: 0.75em;
+}
+
+.katex .fontsize-ensurer.reset-size7.size6, .katex .sizing.reset-size7.size6 {
+  font-size: 0.83333333em;
+}
+
+.katex .fontsize-ensurer.reset-size7.size7, .katex .sizing.reset-size7.size7 {
+  font-size: 1em;
+}
+
+.katex .fontsize-ensurer.reset-size7.size8, .katex .sizing.reset-size7.size8 {
+  font-size: 1.2em;
+}
+
+.katex .fontsize-ensurer.reset-size7.size9, .katex .sizing.reset-size7.size9 {
+  font-size: 1.44em;
+}
+
+.katex .fontsize-ensurer.reset-size7.size10, .katex .sizing.reset-size7.size10 {
+  font-size: 1.72833333em;
+}
+
+.katex .fontsize-ensurer.reset-size7.size11, .katex .sizing.reset-size7.size11 {
+  font-size: 2.07333333em;
+}
+
+.katex .fontsize-ensurer.reset-size8.size1, .katex .sizing.reset-size8.size1 {
+  font-size: 0.34722222em;
+}
+
+.katex .fontsize-ensurer.reset-size8.size2, .katex .sizing.reset-size8.size2 {
+  font-size: 0.41666667em;
+}
+
+.katex .fontsize-ensurer.reset-size8.size3, .katex .sizing.reset-size8.size3 {
+  font-size: 0.48611111em;
+}
+
+.katex .fontsize-ensurer.reset-size8.size4, .katex .sizing.reset-size8.size4 {
+  font-size: 0.55555556em;
+}
+
+.katex .fontsize-ensurer.reset-size8.size5, .katex .sizing.reset-size8.size5 {
+  font-size: 0.625em;
+}
+
+.katex .fontsize-ensurer.reset-size8.size6, .katex .sizing.reset-size8.size6 {
+  font-size: 0.69444444em;
+}
+
+.katex .fontsize-ensurer.reset-size8.size7, .katex .sizing.reset-size8.size7 {
+  font-size: 0.83333333em;
+}
+
+.katex .fontsize-ensurer.reset-size8.size8, .katex .sizing.reset-size8.size8 {
+  font-size: 1em;
+}
+
+.katex .fontsize-ensurer.reset-size8.size9, .katex .sizing.reset-size8.size9 {
+  font-size: 1.2em;
+}
+
+.katex .fontsize-ensurer.reset-size8.size10, .katex .sizing.reset-size8.size10 {
+  font-size: 1.44027778em;
+}
+
+.katex .fontsize-ensurer.reset-size8.size11, .katex .sizing.reset-size8.size11 {
+  font-size: 1.72777778em;
+}
+
+.katex .fontsize-ensurer.reset-size9.size1, .katex .sizing.reset-size9.size1 {
+  font-size: 0.28935185em;
+}
+
+.katex .fontsize-ensurer.reset-size9.size2, .katex .sizing.reset-size9.size2 {
+  font-size: 0.34722222em;
+}
+
+.katex .fontsize-ensurer.reset-size9.size3, .katex .sizing.reset-size9.size3 {
+  font-size: 0.40509259em;
+}
+
+.katex .fontsize-ensurer.reset-size9.size4, .katex .sizing.reset-size9.size4 {
+  font-size: 0.46296296em;
+}
+
+.katex .fontsize-ensurer.reset-size9.size5, .katex .sizing.reset-size9.size5 {
+  font-size: 0.52083333em;
+}
+
+.katex .fontsize-ensurer.reset-size9.size6, .katex .sizing.reset-size9.size6 {
+  font-size: 0.5787037em;
+}
+
+.katex .fontsize-ensurer.reset-size9.size7, .katex .sizing.reset-size9.size7 {
+  font-size: 0.69444444em;
+}
+
+.katex .fontsize-ensurer.reset-size9.size8, .katex .sizing.reset-size9.size8 {
+  font-size: 0.83333333em;
+}
+
+.katex .fontsize-ensurer.reset-size9.size9, .katex .sizing.reset-size9.size9 {
+  font-size: 1em;
+}
+
+.katex .fontsize-ensurer.reset-size9.size10, .katex .sizing.reset-size9.size10 {
+  font-size: 1.20023148em;
+}
+
+.katex .fontsize-ensurer.reset-size9.size11, .katex .sizing.reset-size9.size11 {
+  font-size: 1.43981481em;
+}
+
+.katex .fontsize-ensurer.reset-size10.size1, .katex .sizing.reset-size10.size1 {
+  font-size: 0.24108004em;
+}
+
+.katex .fontsize-ensurer.reset-size10.size2, .katex .sizing.reset-size10.size2 {
+  font-size: 0.28929605em;
+}
+
+.katex .fontsize-ensurer.reset-size10.size3, .katex .sizing.reset-size10.size3 {
+  font-size: 0.33751205em;
+}
+
+.katex .fontsize-ensurer.reset-size10.size4, .katex .sizing.reset-size10.size4 {
+  font-size: 0.38572806em;
+}
+
+.katex .fontsize-ensurer.reset-size10.size5, .katex .sizing.reset-size10.size5 {
+  font-size: 0.43394407em;
+}
+
+.katex .fontsize-ensurer.reset-size10.size6, .katex .sizing.reset-size10.size6 {
+  font-size: 0.48216008em;
+}
+
+.katex .fontsize-ensurer.reset-size10.size7, .katex .sizing.reset-size10.size7 {
+  font-size: 0.57859209em;
+}
+
+.katex .fontsize-ensurer.reset-size10.size8, .katex .sizing.reset-size10.size8 {
+  font-size: 0.69431051em;
+}
+
+.katex .fontsize-ensurer.reset-size10.size9, .katex .sizing.reset-size10.size9 {
+  font-size: 0.83317261em;
+}
+
+.katex .fontsize-ensurer.reset-size10.size10, .katex .sizing.reset-size10.size10 {
+  font-size: 1em;
+}
+
+.katex .fontsize-ensurer.reset-size10.size11, .katex .sizing.reset-size10.size11 {
+  font-size: 1.19961427em;
+}
+
+.katex .fontsize-ensurer.reset-size11.size1, .katex .sizing.reset-size11.size1 {
+  font-size: 0.20096463em;
+}
+
+.katex .fontsize-ensurer.reset-size11.size2, .katex .sizing.reset-size11.size2 {
+  font-size: 0.24115756em;
+}
+
+.katex .fontsize-ensurer.reset-size11.size3, .katex .sizing.reset-size11.size3 {
+  font-size: 0.28135048em;
+}
+
+.katex .fontsize-ensurer.reset-size11.size4, .katex .sizing.reset-size11.size4 {
+  font-size: 0.32154341em;
+}
+
+.katex .fontsize-ensurer.reset-size11.size5, .katex .sizing.reset-size11.size5 {
+  font-size: 0.36173633em;
+}
+
+.katex .fontsize-ensurer.reset-size11.size6, .katex .sizing.reset-size11.size6 {
+  font-size: 0.40192926em;
+}
+
+.katex .fontsize-ensurer.reset-size11.size7, .katex .sizing.reset-size11.size7 {
+  font-size: 0.48231511em;
+}
+
+.katex .fontsize-ensurer.reset-size11.size8, .katex .sizing.reset-size11.size8 {
+  font-size: 0.57877814em;
+}
+
+.katex .fontsize-ensurer.reset-size11.size9, .katex .sizing.reset-size11.size9 {
+  font-size: 0.69453376em;
+}
+
+.katex .fontsize-ensurer.reset-size11.size10, .katex .sizing.reset-size11.size10 {
+  font-size: 0.83360129em;
+}
+
+.katex .fontsize-ensurer.reset-size11.size11, .katex .sizing.reset-size11.size11 {
+  font-size: 1em;
+}
+
+.katex .delimsizing.size1 {
+  font-family: KaTeX_Size1;
+}
+
+.katex .delimsizing.size2 {
+  font-family: KaTeX_Size2;
+}
+
+.katex .delimsizing.size3 {
+  font-family: KaTeX_Size3;
+}
+
+.katex .delimsizing.size4 {
+  font-family: KaTeX_Size4;
+}
+
+.katex .delimsizing.mult .delim-size1 > span {
+  font-family: KaTeX_Size1;
+}
+
+.katex .delimsizing.mult .delim-size4 > span {
+  font-family: KaTeX_Size4;
+}
+
+.katex .nulldelimiter {
+  display: inline-block;
+  width: 0.12em;
+}
+
+.katex .delimcenter, .katex .op-symbol {
+  position: relative;
+}
+
+.katex .op-symbol.small-op {
+  font-family: KaTeX_Size1;
+}
+
+.katex .op-symbol.large-op {
+  font-family: KaTeX_Size2;
+}
+
+.katex .accent > .vlist-t, .katex .op-limits > .vlist-t {
+  text-align: center;
+}
+
+.katex .accent .accent-body {
+  position: relative;
+}
+
+.katex .accent .accent-body:not(.accent-full) {
+  width: 0;
+}
+
+.katex .overlay {
+  display: block;
+}
+
+.katex .mtable .vertical-separator {
+  display: inline-block;
+  min-width: 1px;
+}
+
+.katex .mtable .arraycolsep {
+  display: inline-block;
+}
+
+.katex .mtable .col-align-c > .vlist-t {
+  text-align: center;
+}
+
+.katex .mtable .col-align-l > .vlist-t {
+  text-align: left;
+}
+
+.katex .mtable .col-align-r > .vlist-t {
+  text-align: right;
+}
+
+.katex .svg-align {
+  text-align: left;
+}
+
+.katex svg {
+  fill: currentColor;
+  stroke: currentColor;
+  fill-rule: nonzero;
+  fill-opacity: 1;
+  stroke-width: 1;
+  stroke-linecap: butt;
+  stroke-linejoin: miter;
+  stroke-miterlimit: 4;
+  stroke-dasharray: none;
+  stroke-dashoffset: 0;
+  stroke-opacity: 1;
+  display: block;
+  height: inherit;
+  position: absolute;
+  width: 100%;
+}
+
+.katex svg path {
+  stroke: none;
+}
+
+.katex img {
+  border-style: none;
+  max-height: none;
+  max-width: none;
+  min-height: 0;
+  min-width: 0;
+}
+
+.katex .stretchy {
+  display: block;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.katex .stretchy:after, .katex .stretchy:before {
+  content: "";
+}
+
+.katex .hide-tail {
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.katex .halfarrow-left {
+  left: 0;
+  overflow: hidden;
+  position: absolute;
+  width: 50.2%;
+}
+
+.katex .halfarrow-right {
+  overflow: hidden;
+  position: absolute;
+  right: 0;
+  width: 50.2%;
+}
+
+.katex .brace-left {
+  left: 0;
+  overflow: hidden;
+  position: absolute;
+  width: 25.1%;
+}
+
+.katex .brace-center {
+  left: 25%;
+  overflow: hidden;
+  position: absolute;
+  width: 50%;
+}
+
+.katex .brace-right {
+  overflow: hidden;
+  position: absolute;
+  right: 0;
+  width: 25.1%;
+}
+
+.katex .x-arrow-pad {
+  padding: 0 0.5em;
+}
+
+.katex .cd-arrow-pad {
+  padding: 0 0.55556em 0 0.27778em;
+}
+
+.katex .mover, .katex .munder, .katex .x-arrow {
+  text-align: center;
+}
+
+.katex .boxpad {
+  padding: 0 0.3em;
+}
+
+.katex .fbox, .katex .fcolorbox {
+  border: 0.04em solid;
+  box-sizing: border-box;
+}
+
+.katex .cancel-pad {
+  padding: 0 0.2em;
+}
+
+.katex .cancel-lap {
+  margin-left: -0.2em;
+  margin-right: -0.2em;
+}
+
+.katex .sout {
+  border-bottom-style: solid;
+  border-bottom-width: 0.08em;
+}
+
+.katex .angl {
+  border-right: 0.049em solid;
+  border-top: 0.049em solid;
+  box-sizing: border-box;
+  margin-right: 0.03889em;
+}
+
+.katex .anglpad {
+  padding: 0 0.03889em;
+}
+
+.katex .eqn-num:before {
+  content: "(" counter(katexEqnNo) ")";
+  counter-increment: katexEqnNo;
+}
+
+.katex .mml-eqn-num:before {
+  content: "(" counter(mmlEqnNo) ")";
+  counter-increment: mmlEqnNo;
+}
+
+.katex .mtr-glue {
+  width: 50%;
+}
+
+.katex .cd-vert-arrow {
+  display: inline-block;
+  position: relative;
+}
+
+.katex .cd-label-left {
+  display: inline-block;
+  position: absolute;
+  right: calc(50% + 0.3em);
+  text-align: left;
+}
+
+.katex .cd-label-right {
+  display: inline-block;
+  left: calc(50% + 0.3em);
+  position: absolute;
+  text-align: right;
+}
+
+.katex-display {
+  display: block;
+  margin: 1em 0;
+  text-align: center;
+}
+
+.katex-display > .katex {
+  display: block;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.katex-display > .katex > .katex-html {
+  display: block;
+  position: relative;
+}
+
+.katex-display > .katex > .katex-html > .tag {
+  position: absolute;
+  right: 0;
+}
+
+.katex-display.leqno > .katex > .katex-html > .tag {
+  left: 0;
+  right: auto;
+}
+
+.katex-display.fleqn > .katex {
+  padding-left: 2em;
+  text-align: left;
+}
+
+body {
+  counter-reset: katexEqnNo mmlEqnNo;
+}
+
+[data-node-type=math-inline] {
+  font-size: 0.9em;
+  display: inline-block;
+  vertical-align: middle;
+  max-width: 100%;
+}
+
+[data-node-type=math-block] {
+  font-size: 20px;
+  text-align: center;
+  max-width: 100%;
+  position: relative;
+  display: flex;
+}
+[data-node-type=math-block] > span {
+  flex-grow: 1;
+}
+[data-node-type=math-block] > span:first-child {
+  flex-shrink: 2;
+}
+[data-node-type=math-block] > span:nth-child(2) {
+  flex-shrink: 0;
+}
+[data-node-type=math-block] > span:last-child {
+  flex-shrink: 1;
+  text-align: right;
+}
+
+.math-label {
+  text-align: center;
+  font-family: Georgia, Cambria, "Times New Roman", Times, "DejaVu Serif", source-han-serif-tc, source-han-serif-korean, source-han-serif-japanese, source-han-serif-sc, serif;
+}
+
+.equation-label {
+  text-align: center;
+  font-family: Georgia, Cambria, "Times New Roman", Times, "DejaVu Serif", source-han-serif-tc, source-han-serif-korean, source-han-serif-japanese, source-han-serif-sc, serif;
+}
+
+.editor {
+  /*! fileicon.css v0.1.1 | MIT License | github.com/picturepan2/fileicon.css */
+  /* fileicon.basic */
+  /* fileicons */
+  /* fileicon.types */
+  /* This clunky table, tableWrapper thing is because */
+  /* isReadOnly removes the wrapping div, so margins don't */
+  /* collapse as expected in all situations. */
+}
+.editor:focus {
+  outline: none !important;
+}
+.editor .prosemirror-placeholder {
+  opacity: 0.5;
+  white-space: nowrap;
+  position: relative;
+}
+.editor .prosemirror-placeholder:after {
+  position: absolute;
+  top: 0;
+  content: attr(data-content);
+}
+.editor .ProseMirror-selectednode {
+  outline: 2px solid #bbbdc0;
+}
+.editor.read-only .ProseMirror-selectednode {
+  outline: 0px solid #bbbdc0;
+}
+.editor h1 a,
+.editor h2 a,
+.editor h3 a,
+.editor h4 a,
+.editor h5 a,
+.editor h6 a {
+  text-decoration: none;
+  color: inherit;
+}
+.editor .footnote {
+  vertical-align: super;
+  font-size: 0.85em;
+  line-height: 1;
+}
+.editor span.citation {
+  color: #808080;
+  font-weight: bold;
+}
+.editor a.reference.missing {
+  color: darkred;
+}
+.editor table {
+  /* Prosemirror requires white-space: pre-wrap, but it's overriden by the quirks.css */
+  /* built-in that Firefox provides, breaking the editor. */
+  /* See https://github.com/ProseMirror/prosemirror/issues/651#issuecomment-313436150 */
+  white-space: pre-wrap !important;
+}
+.editor sup,
+.editor sub {
+  position: static;
+}
+.editor sub {
+  vertical-align: sub;
+}
+.editor sup {
+  vertical-align: super;
+}
+.editor .collab-cursor {
+  position: relative;
+  font-family: -apple-system, "BlinkMacSystemFont", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Open Sans", "Helvetica Neue", sans-serif;
+  color: white;
+  user-select: none;
+  vertical-align: top;
+}
+.editor .collab-cursor .inner-bar {
+  position: absolute;
+  height: calc(1em + 5px);
+  width: 2px;
+  background-color: rgb(0, 25, 150);
+  bottom: 0px;
+  left: 0;
+}
+.editor .collab-cursor .inner-bar .inner-circle-small {
+  position: absolute;
+  height: 8px;
+  width: 8px;
+  border-radius: 8px;
+  background-color: rgb(0, 25, 150);
+  bottom: calc(100% + 0px);
+  left: -3px;
+}
+.editor .collab-cursor .inner-bar .hover-wrapper {
+  transform: scale(0.4);
+  opacity: 0;
+  transform-origin: bottom left;
+  transition: 0.1s 0.3s linear transform, 0s 0.4s linear opacity;
+  display: block;
+  position: absolute;
+  bottom: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+.editor .collab-cursor .inner-bar .hover-wrapper .inner-circle-big {
+  position: absolute;
+  height: 24px;
+  width: 24px;
+  border-radius: 24px;
+  background-color: rgb(0, 25, 150);
+  bottom: 0px;
+  left: -11px;
+}
+.editor .collab-cursor .inner-bar .hover-wrapper .initials:after {
+  display: block;
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  bottom: 2px;
+  left: -9px;
+  font-size: 12px;
+  font-weight: bold;
+  line-height: 20px;
+  text-align: center;
+  z-index: 4;
+  white-space: nowrap;
+  user-select: none;
+}
+.editor .collab-cursor .inner-bar .hover-wrapper .name:after {
+  position: absolute;
+  display: block;
+  padding: 2px 12px;
+  border-radius: 2px;
+  color: white;
+  background-color: #777;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 400;
+  bottom: 2px;
+  left: 6px;
+  white-space: nowrap;
+  z-index: 3;
+  user-select: none;
+}
+.editor .collab-cursor .inner-bar .hover-wrapper .image:after {
+  position: absolute;
+  bottom: 2px;
+  left: -9px;
+  z-index: 5;
+  border-radius: 10px;
+  width: 20px;
+  height: 20px;
+  background-size: cover;
+  content: "";
+  max-width: none;
+  margin-top: 0px;
+}
+.editor .collab-cursor:hover .hover-wrapper {
+  opacity: 1;
+  transform: scale(1);
+  transition: 0.1s linear transform, 0s 0s linear opacity;
+}
+.editor figure {
+  display: block;
+  text-align: center;
+  margin: 0;
+}
+.editor figure > * {
+  pointer-events: none;
+  width: 100%;
+}
+.editor figure > a > img {
+  width: 100%;
+}
+.editor figure.ProseMirror-selectednode {
+  outline: 2px solid #bbbdc0;
+}
+.editor figure.ProseMirror-selectednode > * {
+  pointer-events: auto;
+}
+.editor figure[data-align=left] {
+  float: left;
+  margin: 0.5em 1.5em 0.5em 0em;
+}
+.editor figure[data-align=right] {
+  float: right;
+  margin: 0.5em 0em 0.5em 1.5em;
+}
+.editor figure[data-align=center] {
+  margin: 0 auto;
+}
+.editor figure[data-size="1"] {
+  width: 1%;
+}
+.editor figure[data-size="2"] {
+  width: 2%;
+}
+.editor figure[data-size="3"] {
+  width: 3%;
+}
+.editor figure[data-size="4"] {
+  width: 4%;
+}
+.editor figure[data-size="5"] {
+  width: 5%;
+}
+.editor figure[data-size="6"] {
+  width: 6%;
+}
+.editor figure[data-size="7"] {
+  width: 7%;
+}
+.editor figure[data-size="8"] {
+  width: 8%;
+}
+.editor figure[data-size="9"] {
+  width: 9%;
+}
+.editor figure[data-size="10"] {
+  width: 10%;
+}
+.editor figure[data-size="11"] {
+  width: 11%;
+}
+.editor figure[data-size="12"] {
+  width: 12%;
+}
+.editor figure[data-size="13"] {
+  width: 13%;
+}
+.editor figure[data-size="14"] {
+  width: 14%;
+}
+.editor figure[data-size="15"] {
+  width: 15%;
+}
+.editor figure[data-size="16"] {
+  width: 16%;
+}
+.editor figure[data-size="17"] {
+  width: 17%;
+}
+.editor figure[data-size="18"] {
+  width: 18%;
+}
+.editor figure[data-size="19"] {
+  width: 19%;
+}
+.editor figure[data-size="20"] {
+  width: 20%;
+}
+.editor figure[data-size="21"] {
+  width: 21%;
+}
+.editor figure[data-size="22"] {
+  width: 22%;
+}
+.editor figure[data-size="23"] {
+  width: 23%;
+}
+.editor figure[data-size="24"] {
+  width: 24%;
+}
+.editor figure[data-size="25"] {
+  width: 25%;
+}
+.editor figure[data-size="26"] {
+  width: 26%;
+}
+.editor figure[data-size="27"] {
+  width: 27%;
+}
+.editor figure[data-size="28"] {
+  width: 28%;
+}
+.editor figure[data-size="29"] {
+  width: 29%;
+}
+.editor figure[data-size="30"] {
+  width: 30%;
+}
+.editor figure[data-size="31"] {
+  width: 31%;
+}
+.editor figure[data-size="32"] {
+  width: 32%;
+}
+.editor figure[data-size="33"] {
+  width: 33%;
+}
+.editor figure[data-size="34"] {
+  width: 34%;
+}
+.editor figure[data-size="35"] {
+  width: 35%;
+}
+.editor figure[data-size="36"] {
+  width: 36%;
+}
+.editor figure[data-size="37"] {
+  width: 37%;
+}
+.editor figure[data-size="38"] {
+  width: 38%;
+}
+.editor figure[data-size="39"] {
+  width: 39%;
+}
+.editor figure[data-size="40"] {
+  width: 40%;
+}
+.editor figure[data-size="41"] {
+  width: 41%;
+}
+.editor figure[data-size="42"] {
+  width: 42%;
+}
+.editor figure[data-size="43"] {
+  width: 43%;
+}
+.editor figure[data-size="44"] {
+  width: 44%;
+}
+.editor figure[data-size="45"] {
+  width: 45%;
+}
+.editor figure[data-size="46"] {
+  width: 46%;
+}
+.editor figure[data-size="47"] {
+  width: 47%;
+}
+.editor figure[data-size="48"] {
+  width: 48%;
+}
+.editor figure[data-size="49"] {
+  width: 49%;
+}
+.editor figure[data-size="50"] {
+  width: 50%;
+}
+.editor figure[data-size="51"] {
+  width: 51%;
+}
+.editor figure[data-size="52"] {
+  width: 52%;
+}
+.editor figure[data-size="53"] {
+  width: 53%;
+}
+.editor figure[data-size="54"] {
+  width: 54%;
+}
+.editor figure[data-size="55"] {
+  width: 55%;
+}
+.editor figure[data-size="56"] {
+  width: 56%;
+}
+.editor figure[data-size="57"] {
+  width: 57%;
+}
+.editor figure[data-size="58"] {
+  width: 58%;
+}
+.editor figure[data-size="59"] {
+  width: 59%;
+}
+.editor figure[data-size="60"] {
+  width: 60%;
+}
+.editor figure[data-size="61"] {
+  width: 61%;
+}
+.editor figure[data-size="62"] {
+  width: 62%;
+}
+.editor figure[data-size="63"] {
+  width: 63%;
+}
+.editor figure[data-size="64"] {
+  width: 64%;
+}
+.editor figure[data-size="65"] {
+  width: 65%;
+}
+.editor figure[data-size="66"] {
+  width: 66%;
+}
+.editor figure[data-size="67"] {
+  width: 67%;
+}
+.editor figure[data-size="68"] {
+  width: 68%;
+}
+.editor figure[data-size="69"] {
+  width: 69%;
+}
+.editor figure[data-size="70"] {
+  width: 70%;
+}
+.editor figure[data-size="71"] {
+  width: 71%;
+}
+.editor figure[data-size="72"] {
+  width: 72%;
+}
+.editor figure[data-size="73"] {
+  width: 73%;
+}
+.editor figure[data-size="74"] {
+  width: 74%;
+}
+.editor figure[data-size="75"] {
+  width: 75%;
+}
+.editor figure[data-size="76"] {
+  width: 76%;
+}
+.editor figure[data-size="77"] {
+  width: 77%;
+}
+.editor figure[data-size="78"] {
+  width: 78%;
+}
+.editor figure[data-size="79"] {
+  width: 79%;
+}
+.editor figure[data-size="80"] {
+  width: 80%;
+}
+.editor figure[data-size="81"] {
+  width: 81%;
+}
+.editor figure[data-size="82"] {
+  width: 82%;
+}
+.editor figure[data-size="83"] {
+  width: 83%;
+}
+.editor figure[data-size="84"] {
+  width: 84%;
+}
+.editor figure[data-size="85"] {
+  width: 85%;
+}
+.editor figure[data-size="86"] {
+  width: 86%;
+}
+.editor figure[data-size="87"] {
+  width: 87%;
+}
+.editor figure[data-size="88"] {
+  width: 88%;
+}
+.editor figure[data-size="89"] {
+  width: 89%;
+}
+.editor figure[data-size="90"] {
+  width: 90%;
+}
+.editor figure[data-size="91"] {
+  width: 91%;
+}
+.editor figure[data-size="92"] {
+  width: 92%;
+}
+.editor figure[data-size="93"] {
+  width: 93%;
+}
+.editor figure[data-size="94"] {
+  width: 94%;
+}
+.editor figure[data-size="95"] {
+  width: 95%;
+}
+.editor figure[data-size="96"] {
+  width: 96%;
+}
+.editor figure[data-size="97"] {
+  width: 97%;
+}
+.editor figure[data-size="98"] {
+  width: 98%;
+}
+.editor figure[data-size="99"] {
+  width: 99%;
+}
+.editor figure[data-size="100"] {
+  width: 100%;
+}
+.editor figure[data-align=full] {
+  width: 100%;
+}
+.editor figure figcaption {
+  opacity: 0.75;
+  margin: 1em auto;
+  margin-top: 5px;
+}
+.editor.ProseMirror.read-only figure > * {
+  pointer-events: auto;
+}
+.editor.ProseMirror.read-only figure.ProseMirror-selectednode {
+  outline: none;
+}
+.editor .file-icon {
+  font-family: Arial, Tahoma, sans-serif;
+  font-weight: 300;
+  display: inline-block;
+  width: 24px;
+  height: 32px;
+  background: #018fef;
+  flex-shrink: 0;
+  position: relative;
+  border-radius: 2px;
+  text-align: left;
+  -webkit-font-smoothing: antialiased;
+}
+.editor .file-icon::before {
+  display: block;
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-bottom-left-radius: 2px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #fff #fff rgba(255, 255, 255, 0.35) rgba(255, 255, 255, 0.35);
+}
+.editor .file-icon::after {
+  display: block;
+  content: attr(data-type);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  font-size: 10px;
+  color: #fff;
+  text-transform: lowercase;
+  width: 100%;
+  padding: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.editor .file-icon-xs {
+  width: 12px;
+  height: 16px;
+  border-radius: 2px;
+}
+.editor .file-icon-xs::before {
+  border-bottom-left-radius: 1px;
+  border-width: 3px;
+}
+.editor .file-icon-xs::after {
+  content: "";
+  border-bottom: 2px solid rgba(255, 255, 255, 0.45);
+  width: auto;
+  left: 2px;
+  right: 2px;
+  bottom: 3px;
+}
+.editor .file-icon-sm {
+  width: 18px;
+  height: 24px;
+  border-radius: 2px;
+}
+.editor .file-icon-sm::before {
+  border-bottom-left-radius: 2px;
+  border-width: 4px;
+}
+.editor .file-icon-sm::after {
+  font-size: 7px;
+  padding: 2px;
+}
+.editor .file-icon-lg {
+  width: 48px;
+  height: 64px;
+  border-radius: 3px;
+}
+.editor .file-icon-lg::before {
+  border-bottom-left-radius: 2px;
+  border-width: 8px;
+}
+.editor .file-icon-lg::after {
+  font-size: 16px;
+  padding: 4px 6px;
+}
+.editor .file-icon-xl {
+  width: 96px;
+  height: 128px;
+  border-radius: 4px;
+}
+.editor .file-icon-xl::before {
+  border-bottom-left-radius: 4px;
+  border-width: 16px;
+}
+.editor .file-icon-xl::after {
+  font-size: 24px;
+  padding: 4px 10px;
+}
+.editor .file-icon[data-type=zip],
+.editor .file-icon[data-type=rar] {
+  background: #acacac;
+}
+.editor .file-icon[data-type^=doc] {
+  background: #307cf1;
+}
+.editor .file-icon[data-type^=xls] {
+  background: #0f9d58;
+}
+.editor .file-icon[data-type^=ppt] {
+  background: #d24726;
+}
+.editor .file-icon[data-type=pdf] {
+  background: #e13d34;
+}
+.editor .file-icon[data-type=txt] {
+  background: #5eb533;
+}
+.editor .file-icon[data-type=mp3],
+.editor .file-icon[data-type=wma],
+.editor .file-icon[data-type=m4a],
+.editor .file-icon[data-type=flac] {
+  background: #8e44ad;
+}
+.editor .file-icon[data-type=mp4],
+.editor .file-icon[data-type=wmv],
+.editor .file-icon[data-type=mov],
+.editor .file-icon[data-type=avi],
+.editor .file-icon[data-type=mkv] {
+  background: #7a3ce7;
+}
+.editor .file-icon[data-type=bmp],
+.editor .file-icon[data-type=jpg],
+.editor .file-icon[data-type=jpeg],
+.editor .file-icon[data-type=gif],
+.editor .file-icon[data-type=png] {
+  background: #f48c00;
+}
+.editor [data-node-type=file] {
+  width: 65%;
+}
+.editor [data-node-type=file] .details {
+  display: flex;
+  align-items: center;
+  text-align: left;
+}
+.editor [data-node-type=file] .details .extension {
+  text-transform: uppercase;
+  font-family: "Courier", monospace;
+  font-weight: 600;
+  font-size: 1.5em;
+}
+.editor [data-node-type=file] .details .file-name {
+  flex-grow: 1;
+  flex-shrink: 1;
+  margin: 0em 1em;
+  word-wrap: break-word;
+}
+.editor [data-node-type=file] .details .file-name a {
+  color: inherit;
+}
+.editor [data-node-type=file] .details .file-name a:hover {
+  cursor: pointer;
+  text-decoration: underline !important;
+}
+.editor [data-node-type=file] .details .file-size {
+  margin: 0em 1em;
+}
+.editor .tableWrapper {
+  margin: 1em 0;
+}
+@media screen and (max-width: 750px) {
+  .editor .tableWrapper {
+    overflow-x: scroll;
+  }
+}
+.editor .tableWrapper table {
+  margin: 0em;
+}
+@media screen and (max-width: 750px) {
+  .editor .tableWrapper table {
+    font-size: 0.8em;
+    width: auto;
+    max-width: fit-content;
+    table-layout: auto;
+  }
+}
+.editor .tableWrapper[data-smaller-font=true] table {
+  font-size: 0.8em;
+}
+.editor th {
+  font-weight: bold;
+  text-align: left;
+  background-color: #f0f0f4;
+}
+.editor th,
+.editor td,
+.editor table caption {
+  min-width: 1em;
+  border: 1px solid #ddd;
+  padding: 3px 5px;
+  /* Two :last-of-type as a selector specificity hack */
+  /* :last-child does not work here because the table plugin inserts nodes when resizing */
+}
+.editor th > p:last-of-type:last-of-type,
+.editor td > p:last-of-type:last-of-type,
+.editor table caption > p:last-of-type:last-of-type {
+  margin-bottom: 0;
+}
+@media screen and (max-width: 750px) {
+  .editor th,
+  .editor td {
+    min-width: 140px;
+    width: auto;
+  }
+}
+.editor table {
+  margin: 1em 0;
+  max-width: 100%;
+}
+.editor table caption {
+  text-align: left;
+  border-bottom: none;
+  padding: 3px 5px;
+}
+.editor > [data-text-align=center] {
+  text-align: center;
+}
+.editor > [data-text-align=right] {
+  text-align: right;
+}
+.editor td > [data-text-align=center],
+.editor th > [data-text-align=center] {
+  text-align: center;
+}
+.editor td > [data-text-align=right],
+.editor th > [data-text-align=right] {
+  text-align: right;
+}
+.editor > blockquote > [data-text-align=center] {
+  text-align: center;
+}
+.editor > blockquote > [data-text-align=right] {
+  text-align: right;
+}
+.editor [data-rtl=true] {
+  direction: rtl;
+}
+
+/* Import some global variables and styles, including fonts */
+/* The fraction of the screen used for the pub margin -- converted to CSS units below */
+/* Below this width, comments will be forced to a minimized view */
+/* The pub won't grow beyond this width */
+/* The space available for comments */
+/* The space available for comments on smaller screens */
+/* The maximum width of all the content */
+/* Full width of the gutter */
+/* The pub won't shrink beyond this width */
+/* Compact width of the gutter */
+/* The margin between the edge of the pub and the viewport (applied to the left and right side) */
+/* Used to determine when `minmax($pub-margin, auto) = $pub-margin`, which indicates that we should
+   treat the .breakout calculation differently.
+   Calculated as: 2 * $pub-margin-fraction * x + $compact-cutoff-width = x */
+.pub-body-component .editor.ProseMirror h1#abstract:first-child,
+.pub-body-styles h1#abstract:first-child {
+  color: var(--community-accent-dark);
+  text-transform: uppercase;
+  font-size: 1em;
+  font-weight: 500;
+  padding-top: 1em;
+}
+.pub-body-component .editor.ProseMirror h1#abstract:first-child + p,
+.pub-body-styles h1#abstract:first-child + p {
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 1em;
+}
+.pub-body-component .editor.ProseMirror h1,
+.pub-body-component .editor.ProseMirror h2,
+.pub-body-component .editor.ProseMirror h3,
+.pub-body-component .editor.ProseMirror h4,
+.pub-body-component .editor.ProseMirror h5,
+.pub-body-component .editor.ProseMirror h6,
+.pub-body-styles h1,
+.pub-body-styles h2,
+.pub-body-styles h3,
+.pub-body-styles h4,
+.pub-body-styles h5,
+.pub-body-styles h6 {
+  margin-bottom: 0.5em;
+  line-height: 1em;
+  font-weight: 500;
+  font-family: multi-display, -apple-system, "BlinkMacSystemFont", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Open Sans", "Helvetica Neue", sans-serif, source-han-sans-cjk-tc, source-han-sans-cjk-ko, source-han-sans-cjk-ja, source-han-sans-cjk-sc;
+  letter-spacing: 1px;
+}
+@media only screen and (max-width: 750px) {
+  .pub-body-component .editor.ProseMirror h1,
+  .pub-body-component .editor.ProseMirror h2,
+  .pub-body-component .editor.ProseMirror h3,
+  .pub-body-component .editor.ProseMirror h4,
+  .pub-body-component .editor.ProseMirror h5,
+  .pub-body-component .editor.ProseMirror h6,
+  .pub-body-styles h1,
+  .pub-body-styles h2,
+  .pub-body-styles h3,
+  .pub-body-styles h4,
+  .pub-body-styles h5,
+  .pub-body-styles h6 {
+    overflow-y: hidden;
+    overflow-x: auto;
+  }
+}
+.pub-body-component .editor.ProseMirror h1 a,
+.pub-body-component .editor.ProseMirror h2 a,
+.pub-body-component .editor.ProseMirror h3 a,
+.pub-body-component .editor.ProseMirror h4 a,
+.pub-body-component .editor.ProseMirror h5 a,
+.pub-body-component .editor.ProseMirror h6 a,
+.pub-body-styles h1 a,
+.pub-body-styles h2 a,
+.pub-body-styles h3 a,
+.pub-body-styles h4 a,
+.pub-body-styles h5 a,
+.pub-body-styles h6 a {
+  text-decoration: underline;
+}
+.pub-body-component .editor.ProseMirror h1,
+.pub-body-styles h1 {
+  font-size: 1.4em;
+  font-weight: 600;
+  line-height: 1.3em;
+  letter-spacing: 0px;
+}
+.pub-body-component .editor.ProseMirror h2,
+.pub-body-styles h2 {
+  font-size: 1.3em;
+  line-height: 1.3em;
+  font-weight: 500;
+  letter-spacing: 0px;
+}
+.pub-body-component .editor.ProseMirror h3,
+.pub-body-styles h3 {
+  font-size: 1.2em;
+  line-height: 1.3em;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+}
+.pub-body-component .editor.ProseMirror h4,
+.pub-body-styles h4 {
+  font-size: 1em;
+  line-height: 1.3em;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+.pub-body-component .editor.ProseMirror h5,
+.pub-body-styles h5 {
+  font-size: 1em;
+  line-height: 1.3em;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+}
+.pub-body-component .editor.ProseMirror h6,
+.pub-body-styles h6 {
+  font-size: 1em;
+  line-height: 1.3em;
+  font-weight: 300;
+  letter-spacing: 0.5px;
+}
+.pub-body-component .editor.ProseMirror * + h1,
+.pub-body-component .editor.ProseMirror * + h2,
+.pub-body-component .editor.ProseMirror * + h3,
+.pub-body-component .editor.ProseMirror * + h4,
+.pub-body-component .editor.ProseMirror * + h5,
+.pub-body-component .editor.ProseMirror * + h6,
+.pub-body-styles * + h1,
+.pub-body-styles * + h2,
+.pub-body-styles * + h3,
+.pub-body-styles * + h4,
+.pub-body-styles * + h5,
+.pub-body-styles * + h6 {
+  margin-top: 1.4em;
+}
+.pub-body-component .editor.ProseMirror p,
+.pub-body-component .editor.ProseMirror li,
+.pub-body-styles p,
+.pub-body-styles li {
+  font-family: Georgia, Cambria, "Times New Roman", Times, "DejaVu Serif", source-han-serif-tc, source-han-serif-korean, source-han-serif-japanese, source-han-serif-sc, serif;
+  letter-spacing: 0.01rem;
+  font-weight: 400;
+  font-style: normal;
+  line-height: 1.7;
+  letter-spacing: -0.003em;
+  word-break: break-word;
+}
+.pub-body-component .editor.ProseMirror li,
+.pub-body-styles li {
+  margin: 0;
+}
+.pub-body-component .editor.ProseMirror li > p,
+.pub-body-styles li > p {
+  margin: 0;
+}
+.pub-body-component .editor.ProseMirror p,
+.pub-body-styles p {
+  margin: 0em 0em 1em;
+}
+@media only screen and (max-width: 750px) {
+  .pub-body-component .editor.ProseMirror p,
+  .pub-body-styles p {
+    overflow-y: hidden;
+    overflow-x: auto;
+  }
+}
+.pub-body-component .editor.ProseMirror ul > li::marker,
+.pub-body-styles ul > li::marker {
+  font-size: 0.8em;
+}
+.pub-body-component .editor.ProseMirror ul,
+.pub-body-component .editor.ProseMirror ol,
+.pub-body-styles ul,
+.pub-body-styles ol {
+  padding-left: 1em;
+  margin: 0em 0em 1em;
+}
+.pub-body-component .editor.ProseMirror ul ul,
+.pub-body-component .editor.ProseMirror ul ol,
+.pub-body-component .editor.ProseMirror ol ul,
+.pub-body-component .editor.ProseMirror ol ol,
+.pub-body-styles ul ul,
+.pub-body-styles ul ol,
+.pub-body-styles ol ul,
+.pub-body-styles ol ol {
+  margin-bottom: 0em;
+}
+.pub-body-component .editor.ProseMirror td ol,
+.pub-body-styles td ol {
+  padding-left: 0;
+  list-style-position: inside;
+}
+.pub-body-component .editor.ProseMirror td ol li p,
+.pub-body-styles td ol li p {
+  word-break: break-word;
+}
+.pub-body-component .editor.ProseMirror td ol li p:first-child,
+.pub-body-styles td ol li p:first-child {
+  display: inline;
+}
+.pub-body-component .editor.ProseMirror hr,
+.pub-body-styles hr {
+  margin: 1em 0em;
+}
+.pub-body-component .editor.ProseMirror pre,
+.pub-body-styles pre {
+  box-shadow: none;
+  white-space: pre;
+  overflow: hidden;
+  overflow-x: auto;
+}
+.pub-body-component .editor.ProseMirror pre code,
+.pub-body-styles pre code {
+  display: block;
+  white-space: pre;
+  background-color: transparent;
+  padding: 0em;
+}
+.pub-body-component .editor.ProseMirror pre.codeblock-wrapper,
+.pub-body-styles pre.codeblock-wrapper {
+  margin-bottom: 0;
+  padding-bottom: 30px;
+}
+.pub-body-component .editor.ProseMirror code,
+.pub-body-styles code {
+  background-color: rgba(27, 31, 35, 0.06);
+  border-radius: 2px;
+  font-size: 0.8em;
+  margin: 0;
+  padding: 0.2em 0.4em;
+}
+.pub-body-component .editor.ProseMirror blockquote,
+.pub-body-styles blockquote {
+  line-height: inherit;
+  font-size: 1em;
+  margin: 0 0 1em;
+  border-left: solid 4px rgba(181, 181, 181, 0.5);
+  padding: 0 1em;
+}
+.pub-body-component .editor.ProseMirror .file,
+.pub-body-styles .file {
+  font-size: 0.75em;
+}
+.pub-body-component .editor.ProseMirror figcaption,
+.pub-body-styles figcaption {
+  font-size: 15px;
+}
+.pub-body-component .editor.ProseMirror figcaption p,
+.pub-body-styles figcaption p {
+  margin-bottom: 0em;
+  line-height: 1.2em;
+  font-family: -apple-system, "BlinkMacSystemFont", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Open Sans", "Helvetica Neue", sans-serif;
+}
+.pub-body-component .editor.ProseMirror iframe,
+.pub-body-styles iframe {
+  border: 0px solid transparent;
+}
+.pub-body-component .editor.ProseMirror *:first-child:not(.discussion-thread),
+.pub-body-styles *:first-child:not(.discussion-thread) {
+  margin-top: 0em;
+}
+
+.pub-body-component {
+  position: relative;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -moz-font-feature-settings: "liga" on;
+  font-feature-settings: "liga" on;
+  font-size: 14px;
+  min-height: 300px;
+  margin-top: 25px;
+}
+.pub-body-component .editor.ProseMirror {
+  min-height: 150px;
+}
+.pub-body-component .bp3-callout.working-draft {
+  display: flex;
+  align-items: center;
+}
+.pub-body-component .bp3-callout.working-draft span {
+  flex-grow: 1;
+  flex-shrink: 1;
+}
+.pub-body-component .permanent {
+  background-color: #ffc940;
+}
+
+.pub-body-alert .error-time {
+  font-weight: bold;
+}
+
+body {
+  font-family: -apple-system, "BlinkMacSystemFont", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Open Sans", "Helvetica Neue", sans-serif;
+}
+
+/* Paged-specific overrides */
+.csl-bib-body,
+.csl-entry {
+  display: inline;
+}
+
+.pub-body-component .editor.ProseMirror .pub-notes ol > li {
+  list-style-position: inside;
+  margin: inherit;
+}
+.pub-body-component .editor.ProseMirror .pub-notes ol > li:target {
+  background: cornsilk;
+}
+.pub-body-component .editor.ProseMirror .pub-notes ol > li p:last-child {
+  display: inline;
+}
+.pub-body-component .editor.ProseMirror .pub-notes ol > li p:last-child:before {
+  display: inline;
+  content: " ";
+}
+.pub-body-component .editor.ProseMirror .pub-notes ol > li .return-link {
+  font-size: 0.75em;
+}
+.pub-body-component .editor.ProseMirror figure > * {
+  pointer-events: auto;
+}
+
+section.cover {
+  font-family: multi-display, -apple-system, "BlinkMacSystemFont", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Open Sans", "Helvetica Neue", sans-serif, source-han-sans-cjk-tc, source-han-sans-cjk-ko, source-han-sans-cjk-ja, source-han-sans-cjk-sc;
+}
+section.cover .title {
+  margin-top: 0;
+  font-size: 3em;
+}
+section.cover .byline h3 {
+  margin: 0;
+}
+section.cover .byline h3 span.name {
+  white-space: nowrap;
+  display: inline-block;
+  margin-right: 0.2em;
+}
+section.cover .byline h5 {
+  margin: 0;
+  margin-top: 0.5em;
+}
+section.cover .byline h5 span.affiliation {
+  white-space: break-word;
+  display: inline-block;
+  margin-right: 0.2em;
+}
+section.cover .details > *:not(:last-child) {
+  margin-bottom: 7px;
+}
+section.cover .title,
+section.cover .byline,
+section.cover .details {
+  margin-bottom: 30px !important;
+}
+
+@media screen {
+  body > * {
+    max-width: 700px;
+    margin: 0 auto;
+  }
+  body > *.pub-body-component {
+    font-size: 20px !important;
+  }
+}
+@media print {
+  /* Baseline page styles */
+  @page {
+    size: Letter;
+    @top-left {
+      color: #666;
+      font-size: 10px;
+      font-family: multi-display, -apple-system, "BlinkMacSystemFont", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Open Sans", "Helvetica Neue", sans-serif, source-han-sans-cjk-tc, source-han-sans-cjk-ko, source-han-sans-cjk-ja, source-han-sans-cjk-sc;
+      content: string(top-heading-items);
+      vertical-align: top;
+      padding-top: 1cm;
+    }
+    @top-right {
+      color: #666;
+      font-size: 10px;
+      font-family: multi-display, -apple-system, "BlinkMacSystemFont", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Open Sans", "Helvetica Neue", sans-serif, source-han-sans-cjk-tc, source-han-sans-cjk-ko, source-han-sans-cjk-ja, source-han-sans-cjk-sc;
+      content: string(title);
+      vertical-align: top;
+      padding-top: 1cm;
+    }
+    @top-center {
+      content: "";
+      width: 1cm;
+    }
+    @bottom-center {
+      color: #666;
+      font-size: 10px;
+      font-family: multi-display, -apple-system, "BlinkMacSystemFont", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Open Sans", "Helvetica Neue", sans-serif, source-han-sans-cjk-tc, source-han-sans-cjk-ko, source-han-sans-cjk-ja, source-han-sans-cjk-sc;
+      content: counter(page);
+    }
+  }
+  /* Avoid being the last element on the page */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    break-after: avoid;
+  }
+  tr,
+  th {
+    break-inside: avoid;
+    max-height: 90vh;
+    overflow-y: hidden;
+  }
+  .editor figure {
+    break-inside: avoid;
+    display: flex;
+    flex-direction: column;
+    max-height: 800px;
+  }
+  .editor figure img,
+  .editor figure video {
+    break-inside: avoid;
+    width: 100%;
+    min-height: 0;
+    max-height: 100%;
+    flex-shrink: 1;
+    object-fit: contain;
+  }
+  figcaption {
+    font-size: 10px;
+    color: #555;
+    flex-shrink: 0;
+  }
+  table {
+    font-size: 12px;
+    border-collapse: collapse;
+    table-layout: fixed;
+    width: 100%;
+    overflow: hidden;
+  }
+  table caption {
+    text-align: left;
+  }
+  table,
+  tr,
+  th,
+  td {
+    border: 1px #ccc solid;
+    padding: 5px;
+  }
+  th {
+    font-weight: bold;
+    text-align: left;
+    background-color: #f0f0f4;
+  }
+  td,
+  a {
+    word-break: break-word;
+  }
+  a.footnote {
+    vertical-align: super;
+    font-size: 10px;
+  }
+  [data-node-type=math-block] {
+    font-size: unset;
+    break-inside: avoid;
+  }
+  section.cover {
+    page: cover;
+  }
+  @page cover {
+    @top-left {
+      content: "";
+    }
+    @top-right {
+      content: "";
+    }
+    @bottom-center {
+      content: "";
+    }
+  }
+  .top-heading-items {
+    string-set: top-heading-items content();
+  }
+  .title {
+    string-set: title content();
+  }
+}</style><script>
+(function(d) {
+  var config = {
+	kitId: 'seb8nix',
+	scriptTimeout: 3000,
+	async: true
+  },
+  h=d.documentElement,t=setTimeout(function(){h.className=h.className.replace(/wf-loading/g,"")+" wf-inactive";},config.scriptTimeout),tk=d.createElement("script"),f=false,s=d.getElementsByTagName("script")[0],a;h.className+=" wf-loading";tk.src='https://use.typekit.net/'+config.kitId+'.js';tk.async=true;tk.onload=tk.onreadystatechange=function(){a=this.readyState;if(f||a&&a!="complete"&&a!="loaded")return;f=true;clearTimeout(t);try{Typekit.load(config)}catch(e){}};s.parentNode.insertBefore(tk,s)
+})(document);
+</script></head><body><section class="cover"><h3 class="top-heading-items">The Connected Corpus • Plato&#x27;s Republic</h3><h1 class="title" style="color:#2D2E2F">Plato&#x27;s Republic Book V, translated by Paul Shorey</h1><div class="byline"><h3><span class="name">Connected Corpus</span></h3></div><div class="details"><div><strong>Published on: </strong> Aug 30, 2024</div><div><strong>URL: </strong><a href="https://theconnectedcorpus.pubpub.org/pub/uiyljukq">https://theconnectedcorpus.pubpub.org/pub/uiyljukq</a></div><div><strong>License:</strong> <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/">Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License (CC-BY-NC-ND 4.0)</a></div></div></section><div class="pub-body-component"><div class="editor Prosemirror"><p id="nrvd0f4ulmg"><em>To see the connections, scroll down and click on the comment bubbles in the right-hand margin.  To connect to other texts, click on the links in the comments.  A list of all annotations is at the bottom of the page.  You can also filter connections by who they are connections to, e.g. Aristotle, Stoics, Epicurus, Pyrrhonian Skeptics, etc.</em></p><p id="nadr8aq16go">[449a]</p><p id="nej21mxpzz0"><strong>Socrates</strong></p><p id="nxpbmzeprsf">“To such a city, then, or constitution I apply the terms good and right—and to the corresponding kind of man; but the others I describe as bad and mistaken, if this one is right, in respect both to the administration of states and to the formation of the character of the individual soul, they falling under four forms of badness.” “What are these,” he said. And I was going on to enumerate them in what seemed to me the order of their evolution [449b] from one another, when Polemarchus—he sat at some little distance from Adeimantus—stretched forth his hand, and, taking hold of his garment from above by the shoulder, drew the other toward him and, leaning forward himself, spoke a few words in his ear, of which we overheard nothing else save only this, “Shall we let him off, then,” he said, “or what shall we do?” “By no means,” said Adeimantus, now raising his voice. “What, pray,” said I, “is it that you are not letting off?” “You,” [449c] said he. “And for what reason, pray?” said I. “We think you are a slacker,” he said, and are trying to cheat us out of a whole division, and that not the least, of the argument to avoid the trouble of expounding it, and expect to ‘get away with it’ by observing thus lightly that, of course, in respect to women and children it is obvious to everybody that the possessions of friends will be in common.” “Well, isn&#x27;t that right, Adeimantus?” I said. “Yes,” said he, “but this word ‘right,’ like other things, requires defining as to the way and manner of such a community. There might be many ways. Don&#x27;t, then, pass over the one [449d] that you have in mind. For we have long been lying in wait for you, expecting that you would say something both of the procreation of children and their bringing up, and would explain the whole matter of the community of women and children of which you speak. We think that the right or wrong management of this makes a great difference, all the difference in the world, in the constitution of a state; so now, since you are beginning on another constitution before sufficiently defining this, we are firmly resolved, [450a] as you overheard, not to let you go till you have expounded all this as fully as you did the rest.” “Set me down, too,” said Glaucon, “as voting this ticket.” “Surely,” said Thrasymachus, “you may consider it a joint resolution of us all, Socrates.”</p><p id="nkaxwqmbm5u">“What a thing you have done,” said I, “in thus challenging me! What a huge debate you have started afresh, as it were, about this polity, in the supposed completion of which I was rejoicing, being only too glad to have it accepted [450b] as I then set it forth! You don&#x27;t realize what a swarm of arguments you are stirring up by this demand, which I foresaw and evaded to save us no end of trouble.” “Well,” said Thrasymachus,“do you suppose this company has come here to prospect for gold and not to listen to discussions?” “Yes,” I said, “in measure.” “Nay, Socrates,” said Glaucon, “the measure of listening to such discussions is the whole of life for reasonable men. So don&#x27;t consider us, and do not you yourself grow weary [450c] in explaining to us what we ask or, your views as to how this communion of wives and children among our guardians will be managed, and also about the rearing of the children while still young in the interval between birth and formal schooling which is thought to be the most difficult part of education. Try, then, to tell us what must be the manner of it.” “It is not an easy thing to expound, my dear fellow,” said I, “for even more than the provisions that precede it, it raises many doubts. For one might doubt whether what is proposed is possible and, even conceding the possibility, one might still be sceptical whether it is best. [450d] For which reason one as it were, shrinks from touching on the matter lest the theory be regarded as nothing but a ‘wish-thought,’ my dear friend.” “Do not shrink,” he said, “for your hearers will not be inconsiderate nor distrustful nor hostile.” And I said, “My good fellow, is that remark intended to encourage me?” “It is,” he said. “Well, then,” said I, “it has just the contrary effect. For, if I were confident that I was speaking with knowledge, it would be an excellent encouragement. [450e] For there is both safety and security in speaking the truth with knowledge about our greatest and dearest concerns to those who are both wise and dear. But to speak when one doubts himself and is seeking while he talks is [451a] a fearful and slippery venture. The fear is not of being laughed at, for that is childish, but, lest, missing the truth, I fall down and drag my friends with me in matters where it most imports not to stumble. So I salute Nemesis, Glaucon, in what I am about to say. For, indeed, I believe that involuntary homicide is a lesser fault than to mislead opinion about the honorable, the good, and the just. This is a risk that it is better to run with enemies [451b] than with friends, so that your encouragement is none.” And Glaucon, with a laugh, said, “Nay, Socrates, if any false note in the argument does us any harm, we release you as in a homicide case, and warrant you pure of hand and no deceiver of us. So speak on with confidence.” “Well,” said I, “he who is released in that case is counted pure as the law bids, and, presumably, if there, here too.” “Speak on, then,” he said, “for all this objection.” “We must return then,” said I, “and say now what perhaps ought to have been said in due sequence there. [451c] But maybe this way is right, that after the completion of the male drama we should in turn go through with the female, especially since you are so urgent.”</p><p id="nr50gsnciiv">“For men, then, born and bred as we described there is in my opinion no other right possession and use of children and women than that which accords with the start we gave them. Our endeavor, I believe, was to establish these men in our discourse as the guardians of a flock?” “Yes.” [451d] “Let us preserve the analogy, then, and assign them a generation and breeding answering to it, and see if it suits us or not.” “In what way?” he said. “In this. Do we expect the females of watch-dogs to join in guarding what the males guard and to hunt with them and share all their pursuits or do we expect the females to stay indoors as being incapacitated by the bearing and the breeding of the whelps while the males toil and have all the care of the flock?” “They have all things in common,” [451e] he replied, “except that we treat the females as weaker and the males as stronger.” “Is it possible, then,” said I, “to employ any creature for the same ends as another if you do not assign it the same nurture and education?” “It is not possible.” “If, then, we are to use the women for the same things as the men, [452a] we must also teach them the same things.” “Yes.” “Now music together with gymnastic was the training we gave the men.” “Yes.” “Then we must assign these two arts to the women also and the offices of war and employ them in the same way.” “It would seem likely from what you say,” he replied. “Perhaps, then,” said I, “the contrast with present custom would make much in our proposals look ridiculous if our words are to be realized in fact.” “Yes, indeed,” he said. “What then,” said I, “is the funniest thing you note in them? Is it not obviously the women exercising unclad in the palestra [452b] together with the men, not only the young, but even the older, like old men in gymnasiums, when, though wrinkled and unpleasant to look at, they still persist in exercising?” “Yes, on my word,” he replied, “it would seem ridiculous under present conditions.” “Then,” said I, “since we have set out to speak our minds, we must not fear all the jibes with which the wits would greet so great a revolution, and the sort of things they would say about gymnastics [452c] and culture, and most of all about the bearing of arms and the bestriding of horses.” “You&#x27;re right,” he said. “But since we have begun we must go forward to the rough part of our law, after begging these fellows not to mind their own business but to be serious, and reminding them that it is not long since the Greeks thought it disgraceful and ridiculous, as most of the barbarians do now, for men to be seen naked. And when the practice of athletics began, first with the Cretans [452d] and then with the Lacedaemonians, it was open to the wits of that time to make fun of these practices, don&#x27;t you think so?” “I do.” “But when, I take it, experience showed that it is better to strip than to veil all things of this sort, then the laughter of the eyes faded away before that which reason revealed to be best, and this made it plain that he talks idly who deems anything else ridiculous but evil, and who tries to raise a laugh by looking to any other pattern of absurdity than [452e] that of folly and wrong or sets up any other standard of the beautiful as a mark for his seriousness than the good.” “Most assuredly,” said he.</p><p id="ngal4ttnx1r">“Then is not the first thing that we have to agree upon with regard to these proposals whether they are possible or not? And we must throw open the debate to anyone who wishes either in jest or earnest to raise the question [453a] whether female human nature is capable of sharing with the male all tasks or none at all, or some but not others, and under which of these heads this business of war falls. Would not this be that best beginning which would naturally and proverbially lead to the best end?” “Far the best,” he said. “Shall we then conduct the debate with ourselves in behalf of those others so that the case of the other side may not be taken defenceless and go by default?” [453b] “Nothing hinders,” he said. “Shall we say then in their behalf: ‘There is no need, Socrates and Glaucon, of others disputing against you, for you yourselves at the beginning of the foundation of your city agreed that each one ought to mind as his own business the one thing for which he was fitted by nature?’ ‘We did so agree, I think; certainly!&#x27; ‘Can it be denied then that there is by nature a great difference between men and women?’ ‘Surely there is.’ ‘Is it not fitting, then, that a different function should be appointed [453c] for each corresponding to this difference of nature?’ ‘Certainly.’ ‘How, then, can you deny that you are mistaken and in contradiction with yourselves when you turn around and affirm that the men and the women ought to do the same thing, though their natures are so far apart?’ Can you surprise me with an answer to that question?” “Not easily on this sudden challenge,” he replied: “but I will and do beg you to lend your voice to the plea in our behalf, whatever it may be.” “These and many similar difficulties, Glaucon,” said I, [453d] “I foresaw and feared, and so shrank from touching on the law concerning the getting and breeding of women and children.” “It does not seem an easy thing, by heaven,” he said, “no, by heaven.” “No, it is not,” said I; “but the fact is that whether one tumbles into a little diving-pool or plump into the great sea he swims all the same.” “By all means.” “Then we, too, must swim and try to escape out of the sea of argument in the hope that either some dolphin will take us on its back or some other desperate rescue.” [453e] “So it seems,” he said. “Come then, consider,” said I, “if we can find a way out. We did agree that different natures should have differing pursuits and that the nature of men and women differ. And yet now we affirm that these differing natures should have the same pursuits. That is the indictment.” “It is.” “What a grand thing, Glaucon,” said I, [454a] “is the power of the art of contradiction!” “Why so?” “Because,” said I, “many appear to me to fall into it even against their wills, and to suppose that they are not wrangling but arguing, owing to their inability to apply the proper divisions and distinctions to the subject under consideration. They pursue purely verbal oppositions, practising eristic, not dialectic on one another.” “Yes, this does happen to many,” he said; “but does this observation apply to us too at present?” [454b] “Absolutely,” said I; “at any rate I am afraid that we are unawares slipping into contentiousness.” “In what way?” “The principle that natures not the same ought not to share in the same pursuits we are following up most manfully and eristically in the literal and verbal sense but we did not delay to consider at all what particular kind of diversity and identity of nature we had in mind and with reference to what we were trying to define it when we assigned different pursuits to different natures and the same to the same.” “No, we didn&#x27;t consider that,” he said. [454c] “Wherefore, by the same token,” I said, “we might ask ourselves whether the natures of bald and long-haired men are the same and not, rather, contrary. And, after agreeing that they were opposed, we might, if the bald cobbled, forbid the long-haired to do so, or vice versa.” “That would be ridiculous,” he said. “Would it be so,” said I, “for any other reason than that we did not then posit likeness and difference of nature in any and every sense, but were paying heed solely to the kind of diversity [454d] and homogeneity that was pertinent to the pursuits themselves?” “We meant, for example, that a man and a woman who have a physician&#x27;s mind have the same nature. Don&#x27;t you think so?” “I do.” “But that a man physician and a man carpenter have different natures?” “Certainly, I suppose.”</p><p id="nljepkg1hp1">“Similarly, then,” said I, “if it appears that the male and the female sex have distinct qualifications for any arts or pursuits, we shall affirm that they ought to be assigned respectively to each. But if it appears that they differ only in just this respect that the female bears [454e] and the male begets, we shall say that no proof has yet been produced that the woman differs from the man for our purposes, but we shall continue to think that our guardians and their wives ought to follow the same pursuits.” “And rightly,” said he. “Then, is it not the next thing to bid our opponent tell us [455a] precisely for what art or pursuit concerned with the conduct of a state the woman&#x27;s nature differs from the man&#x27;s?” “That would be at any rate fair.” “Perhaps, then, someone else, too, might say what you were saying a while ago, that it is not easy to find a satisfactory answer on a sudden, but that with time for reflection there is no difficulty.” “He might say that.” “Shall we, then, beg the raiser of such objections to follow us, [455b] if we may perhaps prove able to make it plain to him that there is no pursuit connected with the administration of a state that is peculiar to woman?” “By all means.” “Come then, we shall say to him, answer our question. Was this the basis of your distinction between the man naturally gifted for anything and the one not so gifted—that the one learned easily, the other with difficulty; that the one with slight instruction could discover much for himself in the matter studied, but the other, after much instruction and drill, could not even remember what he had learned; and that the bodily faculties of the one adequately served his mind, [455c] while, for the other, the body was a hindrance? Were there any other points than these by which you distinguish the well endowed man in every subject and the poorly endowed?” “No one,” said he, “will be able to name any others.” “Do you know, then, of anything practised by mankind in which the masculine sex does not surpass the female on all these points? Must we make a long story of it by alleging weaving and the watching of pancakes [455d] and the boiling pot, whereon the sex plumes itself and wherein its defeat will expose it to most laughter?” “You are right,” he said, “that the one sex is far surpassed by the other in everything, one may say. Many women, it is true, are better than many men in many things, but broadly speaking, it is as you say.” “Then there is no pursuit of the administrators of a state that belongs to a woman because she is a woman or to a man because he is a man. But the natural capacities are distributed alike among both creatures, and women naturally share in all pursuits and men in all— [455e] yet for all the woman is weaker than the man.” “Assuredly.” “Shall we, then, assign them all to men and nothing to women?” “How could we?” “We shall rather, I take it, say that one woman has the nature of a physician and another not, and one is by nature musical, and another unmusical?” “Surely.” “Can we, then, deny that one woman is naturally athletic [456a] and warlike and another unwarlike and averse to gymnastics?” “I think not.” “And again, one a lover, another a hater, of wisdom? And one high-spirited, and the other lacking spirit?” “That also is true.” “Then it is likewise true that one woman has the qualities of a guardian and another not. Were not these the natural qualities of the men also whom we selected for guardians?” “They were.” “The women and the men, then, have the same nature in respect to the guardianship of the state, save in so far as the one is weaker, the other stronger.” “Apparently.” [456b]</p><p id="nsvlek7bx96">“Women of this kind, then, must be selected to cohabit with men of this kind and to serve with them as guardians since they are capable of it and akin by nature.” “By all means.” “And to the same natures must we not assign the same pursuits?” “The same.” “We come round, then, to our previous statement, and agree that it does not run counter to nature to assign music and gymnastics to the wives of the guardians.” [456c] “By all means.” “Our legislation, then, was not impracticable or utopian, since the law we proposed accorded with nature. Rather, the other way of doing things, prevalent today, proves, as it seems, unnatural.” “Apparently.” “The object of our inquiry was the possibility and the desirability of what we were proposing.” “It was.” “That it is possible has been admitted.” “Yes.” “The next point to be agreed upon is that it is the best way.” “Obviously.” “For the production of a guardian, then, education will not be one thing for our men and another for our women, especially since [456d] the nature which we hand over to it is the same.” “There will be no difference.” “How are you minded, now, in this matter?” “In what?” “In the matter of supposing some men to be better and some worse, or do you think them all alike?” “By no means.” “In the city, then, that we are founding, which do you think will prove the better men, the guardians receiving the education which we have described or the cobblers educated by the art of cobbling?” “An absurd question,” he said. [456e] “I understand,” said I; “and are not these the best of all the citizens?” “By far.” “And will not these women be the best of all the women?” “They, too, by far.” “Is there anything better for a state than the generation in it of the best possible women and men?” “There is not.” “And this, music and gymnastics [457a] applied as we described will effect.” “Surely.” “Then the institution we proposed is not only possible but the best for the state.” “That is so.” “The women of the guardians, then, must strip, since they will be clothed with virtue as a garment, and must take their part with the men in war and the other duties of civic guardianship and have no other occupation. But in these very duties lighter tasks must be assigned to the women than to the men [457b] because of their weakness as a class. But the man who ridicules unclad women, exercising because it is best that they should, ‘plucks the unripe fruit’ of laughter and does not know, it appears, the end of his laughter nor what he would be at. For the fairest thing that is said or ever will be said is this, that the helpful is fair and the harmful foul.” “Assuredly.”</p><p id="nrrp4ulowta">“In this matter, then, of the regulation of women, we may say that we have surmounted one of the waves of our paradox [457c] and have not been quite swept away by it in ordaining that our guardians and female guardians must have all pursuits in common, but that in some sort the argument concurs with itself in the assurance that what it proposes is both possible and beneficial.” “It is no slight wave that you are thus escaping.” “You will not think it a great one,” I said, “when you have seen the one that follows.” “Say on then and show me,” said he. “This,” said I, “and all that precedes has for its sequel, in my opinion, the following law.” “What? “That these women shall all be common to all the men, [457d] and that none shall cohabit with any privately; and that the children shall be common, and that no parent shall know its own offspring nor any child its parent.” “This is a far bigger paradox than the other, and provokes more distrust as to its possibility and its utility.” “I presume,” said I, “that there would be no debate about its utility, no denial that the community of women and children would be the greatest good, supposing it possible. But I take it that its possibility or the contrary [457e] would be the chief topic of contention.” “Both,” he said, “would be right sharply debated.” “You mean,” said I, “that I have to meet a coalition of arguments. But I expected to escape from one of them, and that if you agreed that the thing was beneficial, it would remain for me to speak only of its feasibility.” “You have not escaped detection,” he said, “in your attempted flight, but you must render an account of both.” “I must pay the penalty,” I said, “yet do me this much grace: [458a] Permit me to take a holiday, just as men of lazy minds are wont to feast themselves on their own thoughts when they walk alone. Such persons, without waiting to discover how their desires may be realized, dismiss that topic to save themselves the labor of deliberating about possibilities and impossibilities, assume their wish fulfilled, and proceed to work out the details in imagination, and take pleasure in portraying what they will do when it is realized, thus making still more idle a mind that is idle without that. I too now succumb to this weakness [458b] and desire to postpone and examine later the question of feasibility, but will at present assume that, and will, with your permission, inquire how the rulers will work out the details in practice, and try to show that nothing could be more beneficial to the state and its guardians than the effective operation of our plan. This is what I would try to consider first together with you, and thereafter the other topic, if you allow it.” “I do allow it,” he said: “proceed with the inquiry.” “I think, then,” said I, “that the rulers, [458c] if they are to deserve that name, and their helpers likewise, will, the one, be willing to accept orders, and the other, to give them, in some things obeying our laws, and imitating them in others which we leave to their discretion.” “Presumably.” “You, then, the lawgiver,” I said, “have picked these men and similarly will select to give over to them women as nearly as possible of the same nature. And they, having houses and meals in common, and no private possessions of that kind, [458d] will dwell together, and being commingled in gymnastics and in all their life and education, will be conducted by innate necessity to sexual union. Is not what I say a necessary consequence?” “Not by the necessities of geometry,” he said, “but by those of love, which are perhaps keener and more potent than the other to persuade and constrain the multitude.”</p><p id="nfuhwd8o2hg">“They are, indeed,” I said; “but next, Glaucon, disorder and promiscuity in these unions or [458e] in anything else they do would be an unhallowed thing in a happy state and the rulers will not suffer it.” “It would not be right,” he said. “Obviously, then, we must arrange marriages, sacramental so far as may be. And the most sacred marriages would be those that were most beneficial.”</p><p id="ny8p8nytyz7">[459a] “By all means.” “How, then, would the greatest benefit result? Tell me this, Glaucon. I see that you have in your house hunting-dogs and a number of pedigree cocks. Have you ever considered something about their unions and procreations?” “What?” he said. “In the first place,” I said, “among these themselves, although they are a select breed, do not some prove better than the rest?” “They do.” “Do you then breed from all indiscriminately, or are you careful to breed from the best?” [459b] “From the best.” “And, again, do you breed from the youngest or the oldest, or, so far as may be, from those in their prime?” “From those in their prime.” “And if they are not thus bred, you expect, do you not, that your birds and hounds will greatly degenerate?” “I do,” he said. “And what of horses and other animals?” I said; “is it otherwise with them?” “It would be strange if it were,” said he. “Gracious,” said I, “dear friend, how imperative, then, is our need of the highest skill in our rulers, if the principle holds also for mankind.” [459c] “Well, it does,” he said, “but what of it?” “This,” said I, “that they will have to employ many of those drugs of which we were speaking. We thought that an inferior physician sufficed for bodies that do not need drugs but yield to diet and regimen. But when it is necessary to prescribe drugs we know that a more enterprising and venturesome physician is required.” “True; but what is the pertinency?” “This,” said I: “it seems likely that our rulers will have to make considerable use of falsehood and deception [459d] for the benefit of their subjects. We said, I believe, that the use of that sort of thing was in the category of medicine.” “And that was right,” he said. “In our marriages, then, and the procreation of children, it seems there will be no slight need of this kind of ‘right.&#x27;” “How so?” “It follows from our former admissions,” I said, “that the best men must cohabit with the best women in as many cases as possible and the worst with the worst in the fewest, [459e] and that the offspring of the one must be reared and that of the other not, if the flock is to be as perfect as possible. And the way in which all this is brought to pass must be unknown to any but the rulers, if, again, the herd of guardians is to be as free as possible from dissension.” “Most true,” he said. “We shall, then, have to ordain certain festivals and sacrifices, in which we shall bring together the brides and the bridegrooms, and our poets must compose hymns [460a] suitable to the marriages that then take place. But the number of the marriages we will leave to the discretion of the rulers, that they may keep the number of the citizens as nearly as may be the same, taking into account wars and diseases and all such considerations, and that, so far as possible, our city may not grow too great or too small.” “Right,” he said. “Certain ingenious lots, then, I suppose, must be devised so that the inferior man at each conjugation may blame chance and not the rulers.” “Yes, indeed,” he said. [460b]</p><p id="nb4ixi2jm05">“And on the young men, surely, who excel in war and other pursuits we must bestow honors and prizes, and, in particular, the opportunity of more frequent intercourse with the women, which will at the same time be a plausible pretext for having them beget as many of the children as possible.” “Right.” “And the children thus born will be taken over by the officials appointed for this, men or women or both, since, I take it, the official posts too are common to women and men. [460c] The offspring of the good, I suppose, they will take to the pen or créche, to certain nurses who live apart in a quarter of the city, but the offspring of the inferior, and any of those of the other sort who are born defective, they will properly dispose of in secret, so that no one will know what has become of them.” “That is the condition,” he said, “of preserving the purity of the guardians&#x27; breed.” “They will also supervise the nursing of the children, conducting the mothers to the pen when their breasts are full, but employing every device [460d] to prevent anyone from recognizing her own infant. And they will provide others who have milk if the mothers are insufficient. But they will take care that the mothers themselves shall not suckle too long, and the trouble of wakeful nights and similar burdens they will devolve upon the nurses, wet and dry.” “You are making maternity a soft job for the women of the guardians.” “It ought to be,” said I, “but let us pursue our design. We said that the offspring should come from parents in their prime.” [460e] “True.” “Do you agree that the period of the prime may be fairly estimated at twenty years for a woman and thirty for a man?” “How do you reckon it?” he said. “The women,” I said, “beginning at the age of twenty, shall bear for the state to the age of forty, and the man shall beget for the state from the time he passes his prime in swiftness in running to the age of fifty-five.”</p><p id="nwveqwycca6">[461a] “That is,” he said, “the maturity and prime for both of body and mind.” “Then, if anyone older or younger than the prescribed age meddles with procreation for the state, we shall say that his error is an impiety and an injustice, since he is begetting for the city a child whose birth, if it escapes discovery, will not be attended by the sacrifices and the prayers which the priests and priestesses and the entire city prefer at the ceremonial marriages, that ever better offspring may spring from good sires and from fathers helpful to the state [461b] sons more helpful still. But this child will be born in darkness and conceived in foul incontinence.” “Right,” he said. “And the same rule will apply,” I said, “if any of those still within the age of procreation goes in to a woman of that age with whom the ruler has not paired him. We shall say that he is imposing on the state a base-born, uncertified, and unhallowed child.” “Most rightly,” he said. “But when, I take it, the men and the women have passed the age of lawful procreation, we shall leave the men free to form such relations [461c] with whomsoever they please, except daughter and mother and their direct descendants and ascendants, and likewise the women, save with son and father, and so on, first admonishing them preferably not even to bring to light anything whatever thus conceived, but if they are unable to prevent a birth to dispose of it on the understanding that we cannot rear such an offspring.” “All that sounds reasonable,” he said; “but how are they to distinguish one another&#x27;s fathers and daughters, [461d] and the other degrees of kin that you have just mentioned?” “They won&#x27;t,” said I, “except that a man will call all male offspring born in the tenth and in the seventh month after he became a bridegroom his sons, and all female, daughters, and they will call him father. And, similarly, he will call their offspring his grandchildren and they will call his group grandfathers and grandmothers. And all children born in the period in which their fathers and mothers were procreating will regard one another as brothers and sisters. [461e] This will suffice for the prohibitions of intercourse of which we just now spoke. But the law will allow brothers and sisters to cohabit if the lot so falls out and the Delphic oracle approves.” “Quite right,” said he.</p><p id="n3e9thtj7ft">“This, then, Glaucon, is the manner of the community of wives and children among the guardians. That it is consistent with the rest of our polity and by far the best way is the next point that we must get confirmed [462a] by the argument. Is not that so?” “It is, indeed,” he said. “Is not the logical first step towards such an agreement to ask ourselves what we could name as the greatest good for the constitution of a state and the proper aim of a lawgiver in his legislation, and what would be the greatest evil, and then to consider whether the proposals we have just set forth fit into the footprints of the good and do not suit those of the evil?” “By all means,” he said. “Do we know of any greater evil for a state than the thing that distracts it [462b] and makes it many instead of one, or a greater good than that which binds it together and makes it one?” “We do not.” “Is not, then, the community of pleasure and pain the tie that binds, when, so far as may be, all the citizens rejoice and grieve alike at the same births and deaths?” “By all means,” he said. “But the individualization of these feelings is a dissolvent, when some grieve exceedingly and others rejoice at the same happenings [462c] to the city and its inhabitants?” “Of course.” “And the chief cause of this is when the citizens do not utter in unison such words as ‘mine’ and ‘not mine,’ and similarly with regard to the word ‘alien’?”“Precisely so.” “That city, then, is best ordered in which the greatest number use the expression ‘mine’ and ‘not mine’ of the same things in the same way.” “Much the best.” “And the city whose state is most like that of an individual man. For example, if the finger of one of us is wounded, the entire community of bodily connections stretching to the soul for ‘integration’ [462d] with the dominant part is made aware, and all of it feels the pain as a whole, though it is a part that suffers, and that is how we come to say that the man has a pain in his finger. And for any other member of the man the same statement holds, alike for a part that labors in pain or is eased by pleasure.” “The same,” he said, “and, to return to your question, the best governed state most nearly resembles such an organism.” “That is the kind of a state, [462e] then, I presume, that, when anyone of the citizens suffers aught of good or evil, will be most likely to speak of the part that suffers as its own and will share the pleasure or the pain as a whole.” “Inevitably,” he said, “if it is well governed.”</p><p id="nwdpjkwo2uj">“It is time,” I said, “to return to our city and observe whether it, rather than any other, embodies the qualities agreed upon in our argument.” “We must,” he said. “Well, then,[463a] there are to be found in other cities rulers and the people as in it, are there not?” “There are.” “Will not all these address one another as fellow-citizens?” “Of course.” “But in addition to citizens, what does the people in other states call its rulers.” “In most cities, masters. In democratic cities, just this, rulers.” “But what of the people in our city. In addition to citizens, [463b] what do they call their rulers?” “Saviors and helpers,” he said. “And what term do these apply to the people?” “Payers of their wage and supporters.” “And how do the rulers in other states denominate the populace?” “Slaves,” he said. “And how do the rulers describe one another?” “Co-rulers,” he said. “And ours?” “Co-guardians.” “Can you tell me whether any of the rulers in other states would speak of some of their co-rulers as ‘belonging’ and others as outsiders?” “Yes, many would.” “And such a one thinks and speaks of the one that ‘belongs’ as his own, doesn&#x27;t he, and of the outsider as not his own?” “That is so.” “But what of your guardians. Could any of them think or speak of [463c] his co-guardian as an outsider?” “By no means,” he said; “for no matter whom he meets, he will feel that he is meeting a brother, a sister, a father, a mother, a son, a daughter, or the offspring or forebears of these.” “Excellent,” said I; “but tell me this further, [463d] will it be merely the names of this kinship that you have prescribed for them or must all their actions conform to the names in all customary observance toward fathers and in awe and care and obedience for parents, if they look for the favor of either gods or men, since any other behaviour would be neither just nor pious? Shall these be the unanimous oracular voices that they hear from all the people, or shall some other kind of teaching beset the ears of your children from their birth, both concerning what is due to those who are pointed out as their fathers [463e] and to their other kin?” “These,” he said; “for it would be absurd for them merely to pronounce with their lips the names of kinship without the deeds.” “Then, in this city more than in any other, when one citizen fares well or ill, men will pronounce in unison the word of which we spoke: ‘It is mine that does well; it is mine that does ill.&#x27;” “That is most true,” he said.</p><p id="nkwn3vaxpg7">[464a] “And did we not say that this conviction and way of speech brings with it a community in pleasures and pains?” “And rightly, too.” “Then these citizens, above all others, will have one and the same thing in common which they will name mine, and by virtue of this communion they will have their pleasures and pains in common.” “Quite so.” “And is not the cause of this, besides the general constitution of the state, the community of wives and children among the guardians?” “It will certainly be the chief cause,” he said. [464b]</p><p id="n43ps20nsxk">“But we further agreed that this unity is the greatest blessing for a state, and we compared a well governed state to the human body in its relation to the pleasure and pain of its parts.” “And we were right in so agreeing.” “Then it is the greatest blessing for a state of which the community of women and children among the helpers has been shown to be the cause.” “Quite so,” he said. “And this is consistent with what we said before. For we said, I believe, that these helpers must not possess houses of their own or [464c] land or any other property, but that they should receive from the other citizens for their support the wage of their guardianship and all spend it in common. That was the condition of their being true guardians.” “Right,” he said. “Is it not true, then, as I am trying to say, that those former and these present prescriptions tend to make them still more truly guardians and prevent them from distracting the city by referring ‘mine’ not to the same but to different things, one man dragging off to his own house anything he is able to acquire apart from the rest, [464d] and another doing the same to his own separate house, and having women and children apart, thus introducing into the state the pleasures and pains of individuals? They should all rather, we said, share one conviction about their own, tend to one goal, and so far as practicable have one experience of pleasure and pain.” “By all means,” he said. “Then will not law-suits and accusations against one another vanish, one may say, from among them, because they have nothing in private possession but their bodies, but all else in common? [464e] So that we can count on their being free from the dissensions that arise among men from the possession of property, children, and kin.” “They will necessarily be quit of these,” he said. “And again, there could not rightly arise among them any law-suit for assault or bodily injury. For as between age-fellows we shall say that self-defence is honorable and just, thereby compelling them to keep their bodies in condition.” “Right,” he said.</p><p id="nfplhioh5r8">[465a] “And there will be the further advantage in such a law that an angry man, satisfying his anger in such wise, would be less likely to carry the quarrel to further extremes.” “Assuredly.” “As for an older man, he will always have the charge of ruling and chastising the younger.” “Obviously.” “Again, it is plain that the young man, except by command of the rulers, will probably not do violence to an elder or strike him, or, I take it, dishonor him in any other way. Two guardians sufficient to prevent that [465b] there are, fear and awe, awe restraining him from laying hands on one who may be his parent, and fear in that the others will rush to the aid of the sufferer, some as sons, some as brothers, some as fathers.” “That is the way it works out,” he said. “Then in all cases the laws will leave these men to dwell in peace together.” “Great peace.” “And if these are free from dissensions among themselves, there is no fear that the rest of the city will ever start faction against them or with one another.” “No, there is not.” [465c] “But I hesitate, so unseemly are they, even to mention the pettiest troubles of which they would be rid, the flatterings of the rich, the embarrassments and pains of the poor in the bringing-up of their children and the procuring of money for the necessities of life for their households, the borrowings, the repudiations, all the devices with which they acquire what they deposit with wives and servitors to husband, and all the indignities that they endure in such matters, which are obvious and [465d] ignoble and not deserving of mention.” “Even a blind man can see these,” he said.</p><p id="n25opwieef0">“From all these, then, they will be finally free, and they will live a happier life than that men count most happy, the life of the victors at <a href="https://www.perseus.tufts.edu/hopper/entityvote?doc=Perseus:text:1999.01.0168:book=5:page=465&amp;auth=tgn,7013967&amp;n=1&amp;type=place">Olympia</a>.” “How so?” “The things for which those are felicitated are a small part of what is secured for these. Their victory is fairer and their public support more complete. For the prize of victory that they win is the salvation of the entire state, the fillet that binds their brows is the public support of themselves and their children— [465e] they receive honor from the city while they live and when they die a worthy burial.” “A fair guerdon, indeed,” he said. “Do you recall,” said I, “that in the preceding argument the objection of somebody or other rebuked us for not making our guardians happy,[466a] since, though it was in their power to have everything of the citizens, they had nothing, and we, I believe, replied that this was a consideration to which we would return if occasion offered, but that at present we were making our guardians guardians and the city as a whole as happy as possible, and that we were not modelling our ideal of happiness with reference to any one class?” “I do remember,” he said. “Well then, since now the life of our helpers has been shown to be fairer and better than that of the victors at <a href="https://www.perseus.tufts.edu/hopper/entityvote?doc=Perseus:text:1999.01.0168:book=5:page=466&amp;auth=tgn,7013967&amp;n=1&amp;type=place">Olympia</a>, [466b] need we compare it with the life of cobblers and other craftsmen and farmers?” “I think not,” he said. “But further, we may fairly repeat what I was saying then also, that if the guardian shall strive for a kind of happiness that will unmake him as a guardian and shall not be content with the way of life that is moderate and secure and, as we affirm, the best, but if some senseless and childish opinion about happiness shall beset him and impel him to use his power to appropriate [466c] everything in the city for himself, then he will find out that Hesiod was indeed wise, who said that “‘the half was in some sort more than the whole.’”<a href="https://www.perseus.tufts.edu/hopper/text?doc=Hes.%20WD%2040&amp;lang=original"><strong>Hes. WD 40</strong></a> “If he accepts my counsel,” he said, “he will abide in this way of life.” “You accept, then, as we have described it, this partnership of the women with our men in the matter of education and children and the guardianship of the other citizens, and you admit that both within the city and when they go forth to war they ought to keep guard together and hunt together as it were like hounds, [466d] and have all things in every way, so far as possible, in common, and that so doing they will do what is for the best and nothing that is contrary to female human nature in comparison with male or to their natural fellowship with one another.” “I do admit it,” he said.</p><p id="noczso4mwzb">“Then,” I said, “is not the thing that it remains to determine this, whether, namely, it is possible for such a community to be brought about among men as it is in the other animals, and in what way it is possible?” “You have anticipated,” he said, “the point I was about to raise.” “For as for their wars,” I said, [466e] “the manner in which they will conduct them is too obvious for discussion.” “How so,” said he. “It is obvious that they will march out together, and, what is more, will conduct their children to war when they are sturdy, in order that, like the children of other craftsmen, they may observe the processes of which they must be masters in their maturity; and in addition to looking on [467a] they must assist and minister in all the business of war and serve their fathers and mothers. Or have you never noticed the practice in the arts, how for example the sons of potters look on as helpers a long time before they put their hands to the clay?” “They do, indeed.” “Should these then be more concerned than our guardians to train the children by observation and experience of what is to be their proper business?” “That would be ridiculous,” he said. “But, further, when it comes to fighting, [467b] every creature will do better in the presence of its offspring?” “That is so, but the risk, Socrates, is not slight, in the event of disasters such as may happen in war, that, losing their children as well as themselves, they make it impossible for the remnant of the state to recover.” “What you say is true,” I replied; “but, in the first place, is it your idea that the one thing for which we must provide is the avoidance of all danger?” “By no means.” “And, if they are to take chances, should it not be for something success in which will make them better?” [467c] “Clearly.” “Do you think it makes a slight difference and not worth some risk whether men who are to be warriors do or do not observe war as boys?” “No, it makes a great difference for the purpose of which you speak.” “Starting, then, from this assumption that we are to make the boys spectators of war, we must further contrive security for them and all will be well, will it not?” “Yes.” “To begin with, then,” said I, “will not the fathers be, humanly speaking, not ignorant of war [467d] and shrewd judges of which campaigns are hazardous and which not?” “Presumably,” he said. “They will take the boys with them to the one and avoid the others?” “Rightly.” “And for officers, I presume,” said I, “they will put in charge of them not those who are good for nothing else but men who by age and experience are qualified to serve at once as leaders and as caretakers of children.” “Yes, that would be the proper way.” “Still, we may object, it is the unexpected that happens to many in many cases.” “Yes, indeed.” “To provide against such chances, then, we must wing the children from the start so that if need arises they may fly away and escape.” [467e] “What do you mean?” he said. “We must mount them when very young,” said I, “and first have them taught to ride, and then conduct them to the scene of war, not on mettlesome war-steeds, but on the swiftest and gentlest horses possible; for thus they will have the best view of their own future business and also, if need arises, will most securely escape to safety in the train of elder guides.” “I think you are right,” he said.</p><p id="ni14fft4jy6">[468a] “But now what of the conduct of war? What should be the attitude of the soldiers to one another and the enemy? Am I right in my notions or not?” “Tell me what notions,” he said. “Anyone of them who deserts his post, or flings away his weapons, or is guilty of any similar act of cowardice, should be reduced to the artisan or farmer class, should he not?” “By all means.” “And anyone who is taken alive by the enemy we will make a present of to his captors, shall we not, to deal with their catch [468b] as they please?” “Quite so.” “And don&#x27;t you agree that the one who wins the prize of valor and distinguishes himself shall first be crowned by his fellows in the campaign, by the lads and boys each in turn?” “I do.” “And be greeted with the right hand?” “That, too.” “But I presume you wouldn&#x27;t go as far as this?” “What?” “That he should kiss and be kissed by everyone?” “By all means,” he said, “and I add to the law the provision that during that [468c] campaign none whom he wishes to kiss be allowed to refuse, so that if one is in love with anyone, male or female, he may be the more eager to win the prize.” “Excellent,” said I, “and we have already said that the opportunity of marriage will be more readily provided for the good man, and that he will be more frequently selected than the others for participation in that sort of thing, in order that as many children as possible may be born from such stock.” “We have,” he replied.</p><p id="n7cjd42c848">“But, furthermore, we may cite Homer [468d] too for the justice of honoring in such ways the valiant among our youth. For Homer says that Ajax, who had distinguished himself in the war, was honored with the long chine, assuming that the most fitting meed for a brave man in the prime of his youth is that from which both honor and strength will accrue to him.” “Most rightly,” he said. “We will then,” said I, “take Homer as our guide in this at least. We, too, at sacrifices and on other like occasions, will reward the good so far as they have proved themselves good with hymns and the other privileges of which we have just spoken, [468e] and also with “‘seats of honor and meat and full cups’”<a href="https://www.perseus.tufts.edu/hopper/text?doc=Hom.%20Il.%208.162&amp;lang=original"><strong>Hom. Il. 8.162</strong></a>, so as to combine physical training with honor for the good, both men and women.” “Nothing could be better,” he said. “Very well; and of those who die on campaign, if anyone&#x27;s death has been especially glorious, shall we not, to begin with, affirm that he belongs to the golden race?” “By all means.” “And shall we not believe Hesiod who tells us that when anyone of this race dies, so it is that they become [469a] “ Hallowed spirits dwelling on earth, averters of evil,</p><p id="n9yi86fyfje">Guardians watchful and good of articulate-speaking mortals?”</p><p id="ng854hoo77s">”<a href="https://www.perseus.tufts.edu/hopper/text?doc=Hes.%20WD%20121&amp;lang=original"><strong>Hes. WD 121</strong></a>“We certainly shall believe him.” “We will inquire of Apollo, then, how and with what distinction we are to bury men of more than human, of divine, qualities, and deal with them according to his response.” “How can we do otherwise?” “And ever after we will bestow on their graves the tendance and [469b] worship paid to spirits divine. And we will practice the same observance when any who have been adjudged exceptionally good in the ordinary course of life die of old age or otherwise.” “That will surely be right,” he said. “But again, how will our soldiers conduct themselves toward enemies?” “In what respect?” “First, in the matter of making slaves of the defeated, do you think it right for Greeks to reduce Greek cities to slavery, or rather that so far as they are able, they should not suffer any other city to do so, but should accustom Greeks [469c] to spare Greeks, foreseeing the danger of enslavement by the barbarians?” “Sparing them is wholly and altogether the better,” said he. “They are not, then, themselves to own Greek slaves, either, and they should advise the other Greeks not to?” “By all means,” he said; “at any rate in that way they would be more likely to turn against the barbarians and keep their hands from one another.” “And how about stripping the dead after victory of anything except their weapons: is that well? Does it not furnish a pretext to cowards [469d] not to advance on the living foe, as if they were doing something needful when poking about the dead? Has not this snatching at the spoils ere new destroyed many an army?” “Yes, indeed.” “And don&#x27;t you think it illiberal and greedy to plunder a corpse, and is it not the mark of a womanish and petty spirit to deem the body of the dead an enemy when the real foeman has flown away and left behind only the instrument with which he fought? [469e] Do you see any difference between such conduct and that of the dogs who snarl at the stones that hit them but don&#x27;t touch the thrower?” “Not the slightest.” “We must abandon, then, the plundering of corpses and the refusal to permit their burial.” “By heaven, we certainly must,” he said.</p><p id="nhm7g660qbt">“And again, we will not take weapons to the temples for dedicatory offerings, especially the weapons of Greeks, [470a] if we are at all concerned to preserve friendly relations with the other Greeks. Rather we shall fear that there is pollution in bringing such offerings to the temples from our kind unless in a case where the god bids otherwise.” “Most rightly,” he said. “And in the matter of devastating the land of Greeks and burning their houses, how will your soldiers deal with their enemies.” “I would gladly hear your opinion of that.” “In my view,” [470b] said I, “they ought to do neither, but confine themselves to taking away the annual harvest. Shall I tell you why?” “Do.” “In my opinion, just as we have the two terms, war and faction, so there are also two things, distinguished by two differentiae. The two things I mean are the friendly and kindred on the one hand and the alien and foreign on the other. Now the term employed for the hostility of the friendly is faction, and for that of the alien is war.” “What you say is in nothing beside the mark,” he replied. “Consider, then, [470c] if this goes to the mark. I affirm that the Hellenic race is friendly to itself and akin, and foreign and alien to the barbarian.” “Rightly,” he said. “We shall then say that Greeks fight and wage war with barbarians, and barbarians with Greeks, and are enemies by nature, and that war is the fit name for this enmity and hatred. Greeks, however, we shall say, are still by nature the friends of Greeks when they act in this way, but that <a href="https://www.perseus.tufts.edu/hopper/entityvote?doc=Perseus:text:1999.01.0168:book=5:page=470&amp;auth=tgn,1000074&amp;n=1&amp;type=place">Greece</a> is sick in that case and divided by faction, [470d] and faction is the name we must give to that enmity.” “I will allow you that habit of speech,” he said. “Then observe,” said I, “that when anything of this sort occurs in faction, as the word is now used, and a state is divided against itself, if either party devastates the land and burns the houses of the other such factional strife is thought to be an accursed thing and neither party to be true patriots. Otherwise, they would never have endured thus to outrage their nurse and mother. But the moderate and reasonable thing is thought to be that the victors [470e] shall take away the crops of the vanquished, but that their temper shall be that of men who expect to be reconciled and not always to wage war.” “That way of feeling,” he said, “is far less savage than the other.” “Well, then,” said I, “is not the city that you are founding to be a Greek city?” “It must be,” he said. “Will they then not be good and gentle?” “Indeed they will.” “And won&#x27;t they be philhellenes, lovers of Greeks, and will they not regard all Greece as their own and not renounce their part in the holy places common to all Greeks ?” “Most certainly.” “Will they not then regard any difference with Greeks[471a] who are their own people as a form of faction and refuse even to speak of it as war?” “Most certainly.” “And they will conduct their quarrels always looking forward to a reconciliation?” “By all means.” “They will correct them, then, for their own good, not chastising them with a view to their enslavement or their destruction, but acting as correctors, not as enemies.” “They will,” he said. “They will not, being Greeks, ravage Greek territory nor burn habitations, and they will not admit that in any city all the population are their enemies, men, women and children, but will say that only a few at any time are their foes, [471b] those, namely, who are to blame for the quarrel. And on all these considerations they will not be willing to lay waste the soil, since the majority are their friends, nor to destroy the houses, but will carry the conflict only to the point of compelling the guilty to do justice by the pressure of the suffering of the innocent.” “I,” he said, “agree that our citizens ought to deal with their Greek opponents on this wise, while treating barbarians as Greeks now treat Greeks.” “Shall we lay down this law also, then, [471c] for our guardians that they are not to lay waste the land or burn the houses?” “Let us so decree,” he said, “and assume that this and our preceding prescriptions are right.</p><p id="ntgy0r1xgr1">“But I fear, Socrates, that if you are allowed to go on in this fashion, you will never get to speak of the matter you put aside in order to say all this, namely, the possibility of such a polity coming into existence, and the way in which it could be brought to pass. I too am ready to admit that if it could be realized everything would be lovely for the state that had it, and I will add what you passed by, that they would also be [471d] most successful in war because they would be least likely to desert one another, knowing and addressing each other by the names of brothers, fathers, sons. And if the females should also join in their campaigns, whether in the ranks or marshalled behind to intimidate the enemy, or as reserves in case of need, I recognize that all this too would make them irresistible. And at home, also, I observe all the benefits that you omit to mention. But, taking it for granted that I concede [471e] these and countless other advantages, consequent on the realization of this polity, don&#x27;t labor that point further; but let us at once proceed to try to convince ourselves of just this, that it is possible and how it is possible, [472a] dismissing everything else.” “This is a sudden assault, indeed,” said I, “that you have made on my theory, without any regard for my natural hesitation. Perhaps you don&#x27;t realize that when I have hardly escaped the first two waves, you are now rolling up against me the ‘great third wave’ of paradox, the worst of all. When you have seen and heard that, you will be very ready to be lenient, recognizing that I had good reason after all for shrinking and fearing to enter upon the discussion of so paradoxical a notion.” “The more such excuses you offer,” he said, “the less [472b] you will be released by us from telling in what way the realization of this polity is possible. Speak on, then, and do not put us off.” “The first thing to recall, then,” I said, “is that it was the inquiry into the nature of justice and injustice that brought us to this pass.” “Yes; but what of it?” he said. “Oh, nothing,” I replied, “only this: if we do discover what justice is, are we to demand that the just man shall differ from it in no respect, [472c] but shall conform in every way to the ideal? Or will it suffice us if he approximate to it as nearly as possible and partake of it more than others?” “That will content us,” he said. “A pattern, then,” said I, “was what we wanted when we were inquiring into the nature of ideal justice and asking what would be the character of the perfectly just man, supposing him to exist, and, likewise, in regard to injustice and the completely unjust man. We wished to fix our eyes upon them as types and models, so that whatever we discerned in them of happiness or the reverse would necessarily apply to ourselves [472d] in the sense that whosoever is likest them will have the allotment most like to theirs. Our purpose was not to demonstrate the possibility of the realization of these ideals.” “In that,” he said, “you speak truly.” “Do you think, then, that he would be any the less a good painter, who, after portraying a pattern of the ideally beautiful man and omitting no touch required for the perfection of the picture, should not be able to prove that it is actually possible for such a man to exist?” “Not I, by Zeus,” he said. “Then were not we, [472e] as we say, trying to create in words the pattern of a good state?” “Certainly.” “Do you think, then, that our words are any the less well spoken if we find ourselves unable to prove that it is possible for a state to be governed in accordance with our words?” “Of course not,” he said. “That, then,” said I, “is the truth of the matter. But if, to please you, we must do our best to show how most probably and in what respect these things would be most nearly realized, again, with a view to such a demonstration, grant me the same point.” “What?”[473a] “Is it possible for anything to be realized in deed as it is spoken in word, or is it the nature of things that action should partake of exact truth less than speech, even if some deny it? Do you admit it or not?” “I do,” he said. “Then don&#x27;t insist,” said I, “that I must exhibit as realized in action precisely what we expounded in words. But if we can discover how a state might be constituted most nearly answering to our description, you must say that we have discovered that possibility of realization which you demanded. [473b] Will you not be content if you get this?” “I for my part would.” “And I too,” he said.</p><p id="nulfd9nyuzg">“Next, it seems, we must try to discover and point out what it is that is now badly managed in our cities, and that prevents them from being so governed, and what is the smallest change that would bring a state to this manner of government, preferably a change in one thing, if not, then in two, and, failing that, the fewest possible in number and the slightest in potency.” [473c] “By all means,” he said. “There is one change, then,” said I, “which I think that we can show would bring about the desired transformation. It is not a slight or an easy thing but it is possible.” “What is that?” said he. “I am on the very verge,” said I, “of what we likened to the greatest wave of paradox. But say it I will, even if, to keep the figure, it is likely to wash us away on billows of laughter and scorn. Listen.” “I am all attention,” he said. “Unless,” said I, “either philosophers become kings  [473d] in our states or those whom we now call our kings and rulers take to the pursuit of philosophy seriously and adequately, and there is a conjunction of these two things, political power and philosophic intelligence, while the motley horde of the natures who at present pursue either apart from the other are compulsorily excluded, there can be no cessation of troubles, dear Glaucon, for our states, nor, I fancy, for the human race either. Nor, until this happens, will this constitution which we have been expounding in theory [473e] ever be put into practice within the limits of possibility and see the light of the sun. But this is the thing that has made me so long shrink from speaking out, because I saw that it would be a very paradoxical saying. For it is not easy to see that there is no other way of happiness either for private or public life.” Whereupon he, “Socrates,” said he, “after hurling at us such an utterance and statement as that, you must expect to be attacked by a great multitude of our men of light and leading, who forthwith will, so to speak, cast off their garments [474a] and strip and, snatching the first weapon that comes to hand, rush at you with might and main, prepared to do dreadful deeds. And if you don&#x27;t find words to defend yourself against them, and escape their assault, then to be scorned and flouted will in very truth be the penalty you will have to pay.” “And isn&#x27;t it you,” said I, “that have brought this upon me and are to blame?” “And a good thing, too,” said he; “but I won&#x27;t let you down, and will defend you with what I can. I can do so with my good will and my encouragement, and perhaps I might answer your questions more suitably than another. [474b] So, with such an aid to back you, try to make it plain to the doubters that the truth is as you say.” “I must try,” I replied, “since you proffer so strong an alliance. I think it requisite, then, if we are to escape the assailants you speak of, that we should define for them whom we mean by the philosophers, who we dare to say ought to be our rulers. When these are clearly discriminated it will be possible to defend ourselves by showing that to them by their very nature belong the study of philosophy [474c] and political leadership, while it befits the other sort to let philosophy alone and to follow their leader.” “It is high time,” he said, “to produce your definition.” “Come, then, follow me on this line, if we may in some fashion or other explain our meaning.” “Proceed,” he said. “Must I remind you, then,” said I, “or do you remember, that when we affirm that a man is a lover of something, it must be apparent that he is fond of all of it? It will not do to say that some of it he likes and some does not.”</p><p id="n2l5oxog994">“I think you will have to remind me,” he said, [474d] “for I don&#x27;t apprehend at all.” “That reply, Glaucon,” said I, “befits another rather than you. It does not become a lover to forget that all adolescents in some sort sting and stir the amorous lover of youth and appear to him deserving of his attention and desirable. Is not that your ‘reaction’ to the fair? One, because his nose is tip-tilted, you will praise as piquant, the beak of another you pronounce right-royal, the intermediate type you say strikes the harmonious mean, [474e] the swarthy are of manly aspect, the white are children of the gods divinely fair, and as for honey-hued, do you suppose the very word is anything but the euphemistic invention of some lover who can feel no distaste for sallowness when it accompanies the blooming time of youth? And, in short, there is no pretext [475a] you do not allege and there is nothing you shrink from saying to justify you in not rejecting any who are in the bloom of their prime.” “If it is your pleasure,” he said, “to take me as your example of this trait in lovers, I admit it for the sake of the argument.” “Again,” said I, “do you not observe the same thing in the lovers of wine? They welcome every wine on any pretext.” “They do, indeed.” And so I take it you have observed that men who are covetous of honor, if they can&#x27;t get themselves elected generals, are captains of a company. And if they can&#x27;t be honored [475b] by great men and dignitaries, are satisfied with honor from little men and nobodies. But honor they desire and must have.” “Yes, indeed.” “Admit, then, or reject my proposition. When we say a man is keen about something, shall we say that he has an appetite for the whole class or that he desires only a part and a part not?” “The whole,” he said. “Then the lover of wisdom, too, we shall affirm, desires all wisdom, not a part and a part not.” [475c] “Certainly.” “The student, then, who is finical about his studies, especially when he is young and cannot yet know by reason what is useful and what is not, we shall say is not a lover of learning or a lover of wisdom, just as we say that one who is dainty about his food is not really hungry, has not an appetite for food, and is not a lover of food, but a poor feeder.” “We shall rightly say so.” “But the one who feels no distaste in sampling every study, and who attacks his task of learning gladly and cannot get enough of it, him we shall justly pronounce the lover of wisdom, the philosopher, shall we not?” To which Glaucon replied, [475d] “You will then be giving the name to a numerous and strange band, for all the lovers of spectacles are what they are, I fancy, by virtue of their delight in learning something. And those who always want to hear some new thing are a very queer lot to be reckoned among philosophers. You couldn&#x27;t induce them to attend a serious debate or any such entertainment, but as if they had farmed out their ears to listen to every chorus in the land, they run about to all the Dionysiac festivals, never missing one, either in the towns or in the country-villages. Are we to designate all these, then, and similar folk [475e] and all the practitioners of the minor arts as philosophers?” “Not at all,” I said; “but they do bear a certain likeness to philosophers.”</p><p id="n8kcvrhti4q">“Whom do you mean, then, by the true philosophers?” “Those for whom the truth is the spectacle of which they are enamored,” said I. “Right again,” said he; “but in what sense do you mean it?” “It would be by no means easy to explain it to another,” I said, “but I think that you will grant me this.” “What?” “That since the fair and honorable is the opposite of the base and ugly, they are two.”</p><p id="n311nqlsx8w">[476a] “Of course.” “And since they are two, each is one.” “That also.” “And in respect of the just and the unjust, the good and the bad, and all the ideas or forms, the same statement holds, that in itself each is one, but that by virtue of their communion with actions and bodies and with one another they present themselves everywhere, each as a multiplicity of aspects.” “Right,” he said. “This, then,” said I, “is my division. I set apart and distinguish those of whom you were just speaking, the lovers of spectacles and the arts, [476b] and men of action, and separate from them again those with whom our argument is concerned and who alone deserve the appellation of philosophers or lovers of wisdom.” “What do you mean?” he said. “The lovers of sounds and sights,” I said, “delight in beautiful tones and colors and shapes and in everything that art fashions out of these, but their thought is incapable of apprehending and taking delight in the nature of the beautiful in itself.” “Why, yes,” he said, “that is so.” “And on the other hand, will not those be few who would be able to approach beauty itself and contemplate it in and by itself?” [476c] “They would, indeed.” “He, then, who believes in beautiful things, but neither believes in beauty itself nor is able to follow when someone tries to guide him to the knowledge of it—do you think that his life is a dream or a waking? Just consider. Is not the dream state, whether the man is asleep or awake, just this: the mistaking of resemblance for identity?” “I should certainly call that dreaming,” he said. “Well, then, take the opposite case: the man whose thought recognizes a beauty in itself, [476d] and is able to distinguish that self-beautiful and the things that participate in it, and neither supposes the participants to be it nor it the participants—is his life, in your opinion, a waking or a dream state?” “He is very much awake,” he replied. “Could we not rightly, then, call the mental state of the one as knowing, knowledge, and that of the other as opining, opinion?” “Assuredly.” “Suppose, now, he who we say opines but does not know should be angry and challenge our statement as not true. [476e] Can we find any way of soothing him and gently winning him over, without telling him too plainly that he is not in his right mind?” “We must try,” he said. “Come, then, consider what we are to say to him, or would you have us question him in this fashion—premising that if he knows anything, nobody grudges it him, but we should be very glad to see him knowing something—but tell us this: Does he who knows know something or nothing? Do you reply in his behalf.” “I will reply,” he said, “that he knows something.” “Is it something that is or is not?” “That is. How could [477a] that which is not be known?” “We are sufficiently assured of this, then, even if we should examine it from every point of view, that that which entirely ‘is’ is entirely knowable, and that which in no way &#x27;is&#x27; is in every way unknowable.” “Most sufficiently.” “Good. If a thing, then, is so conditioned as both to be and not to be, would it not lie between that which absolutely and unqualifiedly is and that which in no way is?” “Between.” “Then if knowledge pertains to that which is and ignorance of necessity to that which is not, [477b] for that which lies between we must seek for something between science and nescience, if such a thing there be.” “By all means.” “Is there a thing which we call opinion?” “Surely.” “Is it a different faculty from science or the same?” “A different.” “Then opinion is set over one thing and science over another, each by virtue of its own distinctive power or faculty.” “That is so.” “May we say, then, that science is naturally related to that which is, to know that and how that which is is? But rather, before we proceed, I think we must draw the following distinctions.” “What ones?” [477c]</p><p id="ns8x1xkzcta">“Shall we say that faculties, powers, abilities are a class of entities by virtue of which we and all other things are able to do what we or they are able to do? I mean that sight and hearing, for example, are faculties, if so be that you understand the class or type that I am trying to describe.” “I understand,” he said. “Hear, then, my notion about them. In a faculty I cannot see any color or shape or similar mark such as those on which in many other cases I fix my eyes in discriminating in my thought one thing [477d] from another. But in the case of a faculty I look to one thing only—that to which it is related and what it effects, and it is in this way that I come to call each one of them a faculty, and that which is related to the same thing and accomplishes the same thing I call the same faculty, and that to another I call other. How about you, what is your practice?” “The same,” he said. “To return, then, my friend,” said I, “to science or true knowledge, do you say that it is a faculty and a power, [477e] or in what class do you put it?” “Into this,” he said, “the most potent of all faculties.” “And opinion—shall we assign it to some other class than faculty.” “By no means,” he said, “for that by which we are able to opine is nothing else than the faculty of opinion.” “But not long ago you agreed that science and opinion are not identical.” “How could any rational man affirm the identity of the infallible with the fallible?” “Excellent,” said I, “and we are plainly agreed [478a] that opinion is a different thing from scientific knowledge.” “Yes, different.” “Each of them, then, since it has a different power, is related to a different object.” “Of necessity.” “Science, I presume, to that which is, to know the condition of that which is. But opinion, we say, opines.” “Yes.” “Does it opine the same thing that science knows, and will the knowable and the opinable be identical, or is that impossible?” “Impossible by our admissions,” he said. “If different faculties are naturally related to different objects [478b] and both opinion and science are faculties, but each different from the other, as we say—these admissions do not leave place for the identity of the knowable and the opinable.” “Then, if that which is is knowable, something other than that which is would be the opinable.” “Something else.” “Does it opine that which is not, or is it impossible even to opine that which is not? Reflect: Does not he who opines bring his opinion to bear upon something or shall we reverse ourselves and say that it is possible to opine, yet opine nothing?” “That is impossible.” “Then he who opines opines some one thing.” “Yes.” “But surely that which is not could not be designated as some one thing, but [478c] most rightly as nothing at all. To that which is not we of necessity assigned nescience, and to that which is, knowledge.” “Rightly,” he said. “Then neither that which is nor that which is not is the object of opinion.” “It seems not.” “Then opinion would be neither science nor knowledge.” “So it seems.” “Is it then a faculty outside of these, exceeding either knowledge in lucidity or ignorance in obscurity?” “It is neither.” “But do you deem opinion something darker than knowledge but brighter than ignorance?” “Much so,” he said. “And does it lie within the boundaries [478d] of the two?” “Yes.” “Then opinion would be between the two.” “Most assuredly.” “Were we not saying a little while ago that if anything should turn up such that it both is and is not, that sort of thing would lie between that which purely and absolutely is and that which wholly is not, and that the faculty correlated with it would be neither science or nescience, but that which should appear to hold a place correspondingly between nescience and science.” “Right.” “And now there has turned up between these two the thing that we call opinion.” “There has.” [478e]</p><p id="nlaqgxk3vm6">“It would remain, then, as it seems, for us to discover that which partakes of both, of to be and not to be, and that could not be rightly designated either in its exclusive purity; so that, if it shall be discovered, we may justly pronounce it to be the opinable, thus assigning extremes to extremes and the intermediate to the intermediate. Is not that so?” “It is.” “This much premised, let him tell me, [479a] I will say, let him answer me, that good fellow who does not think there is a beautiful in itself or any idea of beauty in itself always remaining the same and unchanged, but who does believe in many beautiful things—the lover of spectacles, I mean, who cannot endure to hear anybody say that the beautiful is one and the just one, and so of other things—and this will be our question: My good fellow, is there any one of these many fair-and-honorable things that will not sometimes appear ugly and base? And of the just things, that will not seem unjust? And of the pious things, that will not seem impious?” “No, it is inevitable,” he said, “that they would appear [479b] to be both beautiful in a way and ugly, and so with all the other things you asked about.” “And again, do the many double things appear any the less halves than doubles?” “None the less.” “And likewise of the great and the small things, the light and the heavy things—will they admit these predicates any more than their opposites?” “No,” he said, “each of them will always hold of, partake of, both.” “Then is each of these multiples rather than it is not that which one affirms it to be?” “They are like those jesters who palter with us in a double sense at banquets,” he replied, “and resemble the children&#x27;s riddle [479c] about the eunuch and his hitting of the bat—with what and as it sat on what they signify that he struck it. For these things too equivocate, and it is impossible to conceive firmly any one of them to be or not to be or both or neither.” “Do you know what to do with them, then?” said I, “and can you find a better place to put them than that midway between existence or essence and the not-to-be? For we shall surely not discover a darker region than not-being that they should still more not be, [479d] nor brighter than being that they should still more be.” “Most true,” he said. “We would seem to have found, then, that the many conventions of the many about the fair and honorable and other things are tumbled about in the mid-region between that which is not and that which is in the true and absolute sense.” “We have so found it.” “But we agreed in advance that, if anything of that sort should be discovered, it must be denominated opinable, not knowable, the wanderer between being caught by the faculty that is betwixt and between.” “We did.” “We shall affirm, then, that those who view many beautiful things [479e] but do not see the beautiful itself and are unable to follow another&#x27;s guidance to it, and many just things, but not justice itself, and so in all cases—we shall say that such men have opinions about all things, but know nothing of the things they opine.” “Of necessity.” “And, on the other hand, what of those who contemplate the very things themselves in each case, ever remaining the same and unchanged—shall we not say that they know and do not merely opine?” “That, too, necessarily follows.” “Shall we not also say that the one welcomes to his thought and loves the things [480a] subject to knowledge and the other those to opinion? Do we not remember that we said that those loved and regarded tones and beautiful colours and the like, but they could not endure the notion of the reality of the beautiful itself?” “We do remember.” “Shall we then offend their ears if we call them doxophilists rather than philosophers and will they be very angry if we so speak?” “Not if they heed my counsel,” he said, “for to be angry with truth is not lawful.” “Then to those who in each and every kind welcome the true being, lovers of wisdom and not lovers of opinion is the name we must give.” “By all means.”</p><div class="pub-notes"></div></div></div></body></html>
