@@ -26,24 +26,24 @@ connected_corpus/
 ```
 
 ## 2. Process the Annotations
-```
-Review the scraped annotations JSON:
-Ensure the JSON is properly structured
-Validate that all annotations are captured correctly
-Check for any missing data
-Create an annotation display system:
-Design how annotations will appear alongside text
-Decide on interaction patterns (popups, sidebars, etc.)
-Implement JavaScript to handle annotation display
-```
+
+- Review the scraped annotations JSON:
+- Ensure the JSON is properly structured
+- Validate that all annotations are captured correctly
+- Check for any missing data
+- Create an annotation display system:
+- Design how annotations will appear alongside text
+- Decide on interaction patterns (popups, sidebars, etc.)
+- Implement JavaScript to handle annotation display
+
 
 ## 3. Integrate HTML Content with GitHub Pages
 Set up GitHub Pages:
-Enable GitHub Pages in repository settings
-Choose the main branch as source
-Add a basic _config.yml file
+- Enable GitHub Pages in repository settings
+- Choose the main branch as source
+- Add a basic _config.yml file
 
 Standardize HTML files:
-Ensure consistent structure across all HTML files
-Add proper meta tags and accessibility attributes
-Make sure all internal links work correctly
+- Ensure consistent structure across all HTML files
+- Add proper meta tags and accessibility attributes
+- Make sure all internal links work correctly
