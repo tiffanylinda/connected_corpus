@@ -9,6 +9,7 @@ Repo for connected corpus work
 
 ## Next Steps:
 # 1. Organize the Repository Structure
+```
 connected_corpus/
 ├── index.html              # Main landing page
 ├── about/                  # About section
@@ -22,6 +23,7 @@ connected_corpus/
 ├── js/                     # JavaScript files
 ├── assets/                 # Images, fonts, etc.
 └── _config.yml             # GitHub Pages config
+```
 
 # 2. Process the Annotations
 Review the scraped annotations JSON:
