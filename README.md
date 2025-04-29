@@ -27,14 +27,15 @@ connected_corpus/
 
 ## 2. Process the Annotations
 
-- Review the scraped annotations JSON:
+Review the scraped annotations JSON:
 - Ensure the JSON is properly structured
 - Validate that all annotations are captured correctly
 - Check for any missing data
 - Create an annotation display system:
 - Design how annotations will appear alongside text
 - Decide on interaction patterns (popups, sidebars, etc.)
-- Implement JavaScript to handle annotation display
+- Possibly: Implement JavaScript to handle annotation display
+- If this is not possible, encode the annotations at the bottom of the Book page
 
 
 ## 3. Integrate HTML Content with GitHub Pages
